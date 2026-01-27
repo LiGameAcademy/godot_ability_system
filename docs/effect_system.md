@@ -11,15 +11,16 @@
 游戏效果是效果系统的基本单元，所有效果都继承自 `GameplayEffect`。
 
 **效果类型：**
-- 伤害效果（Apply Damage）
-- 治疗效果（Modify Vital）
-- 属性修改效果（Attribute Modifier）
-- 状态应用效果（Apply Status）
-- 状态移除效果（Dispel Status）
-- 状态转换效果（Status Transform）
-- 魔法场生成（Spawn Magic Field）
-- 投射物生成（Spawn Projectile）
-- 单帧位移（Single Frame Motion）
+- [伤害效果（GEApplyDamage）](../scripts/effects/ge_apply_damage.gd)
+- [治疗效果（GEModifyVital）](../scripts/effects/ge_modify_vital.gd)
+- [属性修改效果（GEAttributeModifier）](../scripts/effects/ge_attribute_modifier.gd)
+- [状态应用效果（GEApplyStatus）](../scripts/effects/ge_apply_status.gd)
+- [状态移除效果（GEDispelStatus）](../scripts/effects/ge_dispel_status.gd)
+- [状态转换效果（GEStatusTransform）](../scripts/effects/ge_status_transform.gd)
+- [魔法场生成（GESpawnMagicField）](../scripts/effects/ge_spawn_magic_field.gd)
+- [投射物生成（GESpawnProjectile）](../scripts/effects/ge_spawn_projectile.gd)
+- [单帧位移（GESingleFrameMotion）](../scripts/effects/ge_single_frame_motion.gd)
+- [修改受击伤害（GEModifyIncomingDamage）](../scripts/effects/ge_modify_incoming_damage.gd)
 
 ## 内置效果
 
@@ -190,8 +191,8 @@ motion_effect.relative = false
 
 ```gdscript
 # 在行为树中使用 ApplyEffect 节点
-var apply_effect_node = BTApplyEffect.new()
-apply_effect_node.effect = damage_effect
+var apply_effect_node = AbilityNodeApplyEffect.new()
+apply_effect_node.effects = [damage_effect]
 ```
 
 ### 在状态中应用效果
@@ -275,7 +276,7 @@ for effect in effect_chain:
 
 ## 效果过滤
 
-效果可以应用过滤器，只对符合条件的目标生效：
+效果可以应用`过滤器`，只对符合条件的目标生效：
 
 ```gdscript
 # 创建过滤器
@@ -283,9 +284,16 @@ var filter = FilterTargetByTags.new()
 filter.required_tags = [&"enemy"]
 filter.blocked_tags = [&"boss"]
 
-# 在效果中使用
-effect.filter = filter
+# 在效果中使用（支持多个过滤器）
+effect.filters.append(filter)
 ```
+
+**过滤器系统：**
+- 所有过滤器继承自 [`GameplayFilterData`](../scripts/filters/gameplay_filter.gd)
+- 效果可以配置多个过滤器，所有过滤器都通过时效果才会生效
+- 过滤器在效果应用前进行检查，如果过滤失败，效果不会应用
+
+> **注意**：过滤器系统的详细文档请参考 [过滤器系统文档](filter_system.md)
 
 ## 效果与伤害系统集成
 
@@ -313,4 +321,3 @@ var final_damage = DamageCalculator.calculate_damage(damage_info)
 ## 总结
 
 效果系统提供了丰富的游戏效果实现，支持伤害、治疗、属性修改、状态应用等功能。通过组合不同的效果，可以实现复杂的游戏逻辑。
-

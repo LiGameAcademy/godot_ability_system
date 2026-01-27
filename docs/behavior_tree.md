@@ -14,6 +14,45 @@
 - **FAILURE**: 执行失败
 - **RUNNING**: 正在执行（需要持续更新）
 
+### 行为树实例（BTInstance）
+
+[`BTInstance`](../scripts/behavior_tree/bt_instance.gd) 是行为树的运行时实例，负责：
+
+- 管理行为树的执行状态
+- 维护节点状态记录
+- 处理节点中断和优先级
+- 记录执行历史（用于调试）
+- 管理黑板数据变化通知
+
+**关键方法：**
+- `tick(delta)`: 执行行为树的一帧更新
+- `reset_tree()`: 重置行为树执行状态
+- `register_observer(node)`: 注册观察者节点（用于中断机制）
+
+### 行为树运行器（BTRunner）
+
+[`BTRunner`](../scripts/behavior_tree/bt_runner.gd) 是行为树的执行器组件，可以挂载到场景节点上：
+
+- 自动创建和管理 `BTInstance`
+- 支持三种运行模式：
+  - `IDLE`: 在 `_process` 中运行
+  - `PHYSICS`: 在 `_physics_process` 中运行
+  - `MANUAL`: 仅外部手动调用 `tick()`
+- 提供信号通知行为树完成
+
+**使用示例：**
+```gdscript
+@onready var bt_runner: BTRunner = $BTRunner
+
+func _ready() -> void:
+    bt_runner.tree_root = my_behavior_tree
+    bt_runner.run_mode = BTRunner.RunnerMode.PHYSICS
+    bt_runner.tree_finished.connect(_on_tree_finished)
+
+func _on_tree_finished(result: int) -> void:
+    print("行为树执行完成: ", result)
+```
+
 ### 黑板（Blackboard）
 
 黑板用于在行为树节点之间传递数据。
@@ -127,37 +166,72 @@ Switch
 
 ### 动作节点（Actions）
 
-动作节点执行具体的游戏逻辑。
+动作节点执行具体的游戏逻辑。动作节点分为两类：
 
-#### 1. 应用消耗（BTApplyCost）
+#### 常规动作节点（继承自 BTAction）
 
-应用技能的资源消耗。
+常规动作节点继承自 [`BTAction`](../scripts/behavior_tree/actions/bt_action.gd)，用于通用的游戏逻辑：
 
-**使用场景：** 技能释放时消耗魔法值
+- `BTWait`: 等待指定时间
+- `BTLog`: 输出日志
+- `BTSetVar`: 设置黑板变量
+- `BTModifyInt`: 修改整数变量
+- `BTCheckVar`: 检查变量
+- `BTWaitSignal`: 等待信号
+- 等通用行为树节点
 
-#### 2. 提交消耗（BTCommitCost）
+> **注意**：`BTPlayAnimation` 已迁移到技能系统节点 `AbilityNodePlayAnimation`，请使用后者。
+
+#### 技能系统动作节点（继承自 AbilityNodeBase）
+
+技能系统动作节点继承自 [`AbilityNodeBase`](../scripts/abilities/ability_nodes/ability_node_base.gd)，专门用于技能系统：
+
+- 自动处理目标获取（支持单个目标、目标列表、回退到施法者）
+- 自动处理上下文数据
+- 提供统一的技能系统接口
+
+**技能系统动作节点列表：**
+
+#### 1. 应用消耗（[AbilityNodeApplyCost](../scripts/abilities/ability_nodes/ability_node_apply_cost.gd)）
+
+检查并应用技能的资源消耗。直接检查并扣除目标的 Vital（不经过 CostFeature）。
+
+**属性：**
+- `vital_id`: 要消耗的 Vital ID（如 "health", "mana"）
+- `cost_amount`: 消耗数量
+- `allow_overdraft`: 是否允许透支
+- `check_only`: 是否只检查不消耗
+- `vital_comp_name`: Vital 组件名称
+
+**使用场景：** 
+- 技能释放时消耗魔法值
+- 周期性检查并消耗资源（如献祭技能每秒检查并消耗1点生命值）
+
+#### 2. 提交消耗（[AbilityNodeCommitCost](../scripts/abilities/ability_nodes/ability_node_commit_cost.gd)）
 
 提交技能的资源消耗（在技能确认释放时）。
 
 **使用场景：** 技能确认释放时扣除资源
 
-#### 3. 提交冷却（BTCommitCooldown）
+#### 3. 提交冷却（[AbilityNodeCommitCooldown](../scripts/abilities/ability_nodes/ability_node_commit_cooldown.gd)）
 
 提交技能的冷却时间。
 
 **使用场景：** 技能确认释放时开始冷却
 
-#### 4. 播放动画（BTPlayAnimation）
+#### 4. 播放动画（[AbilityNodePlayAnimation](../scripts/abilities/ability_nodes/ability_node_play_animation.gd)）
 
 播放动画。
 
 **属性：**
+- `cast_target_type`: 播放目标类型（INSTIGATOR 或 TARGET）
 - `animation_name`: 动画名称
-- `animation_player_path`: 动画播放器路径
+- `animation_speed`: 动画播放速度
+- `play_animation_method`: 播放动画的方法名
 
 **使用场景：** 技能释放动画
 
-#### 5. 面向目标（BTFaceTarget）
+#### 5. 面向目标（[AbilityNodeFaceTarget](../scripts/abilities/ability_nodes/ability_node_face_target.gd)）
 
 让角色面向目标。
 
@@ -166,7 +240,7 @@ Switch
 
 **使用场景：** 释放技能时面向目标
 
-#### 6. 生成投射物（BTSpawnProjectile）
+#### 6. 生成投射物（[AbilityNodeSpawnProjectile](../scripts/abilities/ability_nodes/ability_node_spawn_projectile.gd)）
 
 生成投射物。
 
@@ -177,7 +251,7 @@ Switch
 
 **使用场景：** 发射投射物技能
 
-#### 7. 生成魔法场（BTSpawnMagicField）
+#### 7. 生成魔法场（[AbilityNodeSpawnMagicField](../scripts/abilities/ability_nodes/ability_node_spawn_magic_field.gd)）
 
 生成魔法场。
 
@@ -187,17 +261,27 @@ Switch
 
 **使用场景：** 生成持续伤害区域
 
-#### 8. 应用效果（BTApplyEffect）
+#### 8. 应用效果（[AbilityNodeApplyEffect](../scripts/abilities/ability_nodes/ability_node_apply_effect.gd)）
 
 应用游戏效果。
 
 **属性：**
-- `effect_key`: 效果键
-- `target_key`: 目标键
+- `effects`: 要应用的效果列表
+- `effect_key`: 效果键（如果设置了，优先从黑板读取效果）
+- `use_instigator_as_fallback`: 如果没有目标，是否使用 instigator 作为回退
 
 **使用场景：** 对目标应用伤害或治疗
 
-#### 9. 移除状态（BTRemoveStatus）
+#### 9. 应用状态（[AbilityNodeApplyStatus](../scripts/abilities/ability_nodes/ability_node_apply_status.gd)）
+
+对目标应用状态（Buff/Debuff）。
+
+**属性：**
+- `statuses`: 要应用的状态字典（`Dictionary[GameplayStatusData, int]`，值为层数）
+
+**使用场景：** 对目标应用 Buff/Debuff
+
+#### 10. 移除状态（[AbilityNodeRemoveStatus](../scripts/abilities/ability_nodes/ability_node_remove_status.gd)）
 
 移除目标的状态。
 
@@ -207,7 +291,19 @@ Switch
 
 **使用场景：** 移除特定状态
 
-#### 10. 等待信号（BTWaitSignal）
+#### 11. 目标搜索（[AbilityNodeTargetSearch](../scripts/abilities/ability_nodes/ability_node_target_search.gd)）
+
+使用目标选择策略搜索目标。
+
+**属性：**
+- `strategy`: 目标获取策略资源
+- `input_target_key`: 初始目标来源 Key（通常是 context 或 input_target）
+- `write_to_key`: 结果写入黑板的 Key
+- `fail_if_empty`: 如果没找到任何目标，是否视为节点失败
+
+**使用场景：** 在行为树中搜索目标单位
+
+#### 12. 等待信号（[BTWaitSignal](../scripts/behavior_tree/actions/bt_wait_signal.gd)）
 
 等待信号触发。
 
@@ -217,7 +313,7 @@ Switch
 
 **使用场景：** 等待动画完成、等待输入等
 
-#### 11. 等待时间（BTWait）
+#### 13. 等待时间（[BTWait](../scripts/behavior_tree/actions/bt_wait.gd)）
 
 等待指定时间。
 
@@ -225,6 +321,17 @@ Switch
 - `wait_time`: 等待时间（秒）
 
 **使用场景：** 延迟执行
+
+### 动作节点分类总结
+
+| 节点类型 | 基类 | 用途 |
+|---------|------|------|
+| 常规动作节点 | `BTAction` | 通用游戏逻辑（等待、日志、动画等） |
+| 技能系统动作节点 | `AbilityNodeBase` → `BTAction` | 技能系统专用（应用效果、生成投射物等） |
+
+**选择建议：**
+- 如果节点需要访问技能上下文、目标列表等技能系统特性，使用 `AbilityNodeBase`
+- 如果节点是通用的游戏逻辑，使用 `BTAction`
 
 ## 创建行为树
 

@@ -14,6 +14,11 @@ Godot Gameplay Ability System 采用分层架构设计，实现了业务层与�
 player, enemy, npc
     ↓ 通过组件
 character (业务实体)
+    ↓ 通过组件
+component (组件)
+ability_component, attribute_component, status_component, vital_component, etc.
+    ↓ 通过接口
+system (系统)
 ```
 
 **特点：**
@@ -29,25 +34,25 @@ character (业务实体)
 
 组件是功能的容器和管理者，挂载在角色实体上。
 
-- **GameplayAbilityComponent**: 技能容器，管理技能的学习、激活、冷却
 - **GameplayAttributeComponent**: 属性管理，处理属性计算和修改
-- **GameplayStatusComponent**: 状态管理，处理 Buff/Debuff
 - **GameplayVitalAttributeComponent**: 资源管理（生命值、魔法值等）
+- **GameplayStatusComponent**: 状态管理，处理 Buff/Debuff
+- **GameplayAbilityComponent**: 技能容器，管理技能的学习、激活、冷却
 
 #### 2.2 实例层（Instance Layer）
 
 实例是运行时的动态对象，由资源定义创建。
 
-- **GameplayAbilityInstance**: 技能实例，包含技能的执行状态和黑板数据
 - **GameplayAttributeInstance**: 属性实例，包含属性的当前值和修改器
 - **GameplayStatusInstance**: 状态实例，包含状态的层数、剩余时间等信息
+- **GameplayAbilityInstance**: 技能实例，包含技能的执行状态和黑板数据
 
 #### 2.3 资源层（Resource Layer）
 
 资源是静态配置数据，定义在编辑器中。
 
 - **GameplayAbilityDefinition**: 技能定义，包含技能的所有配置
-- **GameplayAttribute / AttributeSet**: 属性定义和属性集
+- **GameplayAttributeDefinition / AttributeSetDefinition**: 属性定义和属性集定义
 - **GameplayStatusData**: 状态数据，定义 Buff/Debuff 的属性
 - **GameplayEffect**: 效果资源，定义各种游戏效果
 
@@ -56,10 +61,10 @@ character (业务实体)
 系统层提供全局服务和单例。
 
 - **GameplayAbilitySystem**: 系统管理器，提供组件查询接口
-- **DamageCalculator**: 伤害计算器
-- **TagManager**: 标签管理器
-- **AbilityEventBus**: 事件总线
-- **GameplayCueManager**: 提示管理器
+- **DamageCalculator**: 伤害计算器，计算伤害值
+- **TagManager**: 标签管理器，管理游戏实体的标签
+- **AbilityEventBus**: 能力系统事件总线
+- **GameplayCueManager**: 提示管理器，管理游戏实体的提示
 
 ## 数据流向
 
@@ -165,7 +170,11 @@ signal attribute_changed(attribute_id: StringName, old_value: float, new_value: 
 全局事件通过事件总线传递：
 
 ```gdscript
-AbilityEventBus.ability_activated.emit(ability_instance)
+# 使用统一游戏事件接口
+AbilityEventBus.trigger_game_event(&"ability_activated", {
+    "ability_instance": ability_instance,
+    "entity": entity
+})
 ```
 
 ### 4. 资源驱动
@@ -233,6 +242,8 @@ func select_target(context: Dictionary) -> Node:
 ```
 
 ## 性能优化
+
+> **TODO**: 以下性能优化功能目前尚未实现，计划在后续版本中添加。
 
 ### 1. 对象池
 

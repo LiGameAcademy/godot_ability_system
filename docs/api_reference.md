@@ -429,27 +429,43 @@
 
 ---
 
-### BTApplyCost
+### AbilityNodeApplyCost
 
-应用消耗节点。
+应用消耗节点。检查并应用技能的资源消耗。
 
----
-
-### BTCommitCooldown
-
-提交冷却节点。
+**参考：** [`ability_node_apply_cost.gd`](../scripts/abilities/ability_nodes/ability_node_apply_cost.gd)
 
 ---
 
-### BTSpawnProjectile
+### AbilityNodeCommitCost
 
-生成投射物节点。
+提交消耗节点。提交技能的资源消耗（在技能确认释放时）。
+
+**参考：** [`ability_node_commit_cost.gd`](../scripts/abilities/ability_nodes/ability_node_commit_cost.gd)
 
 ---
 
-### BTPlayAnimation
+### AbilityNodeCommitCooldown
 
-播放动画节点。
+提交冷却节点。提交技能的冷却时间。
+
+**参考：** [`ability_node_commit_cooldown.gd`](../scripts/abilities/ability_nodes/ability_node_commit_cooldown.gd)
+
+---
+
+### AbilityNodeSpawnProjectile
+
+生成投射物节点。生成投射物。
+
+**参考：** [`ability_node_spawn_projectile.gd`](../scripts/abilities/ability_nodes/ability_node_spawn_projectile.gd)
+
+---
+
+### AbilityNodePlayAnimation
+
+播放动画节点。播放动画。
+
+**参考：** [`ability_node_play_animation.gd`](../scripts/abilities/ability_nodes/ability_node_play_animation.gd)
 
 ---
 

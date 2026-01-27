@@ -85,10 +85,10 @@ git submodule add https://github.com/LiGameAcademy/godot_ability_system.git addo
 
 1. 创建 `BTNode` 资源，选择 `BTSequence`
 2. 添加子节点：
-   - `BTApplyCost` - 应用消耗
-   - `BTPlayAnimation` - 播放动画（可选）
-   - `BTSpawnProjectile` - 生成投射物
-   - `BTCommitCooldown` - 提交冷却
+   - `AbilityNodeApplyCost` - 应用消耗
+   - `AbilityNodePlayAnimation` - 播放动画（可选）
+   - `AbilityNodeSpawnProjectile` - 生成投射物
+   - `AbilityNodeCommitCooldown` - 提交冷却
 
 3. 配置节点参数（根据你的项目需求）
 

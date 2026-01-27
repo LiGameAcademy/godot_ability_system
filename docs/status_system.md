@@ -113,6 +113,24 @@ var policy = DurationGameTime.new()
 status_data.duration_policy = policy
 ```
 
+### 3. 手动更新（Manual Update）
+
+适用于回合制游戏，基于事件手动更新状态持续时间。
+
+```gdscript
+var policy = DurationManualUpdate.new()
+status_data.duration_policy = policy
+
+# 在回合制游戏中，手动触发更新
+# 例如：每回合结束时调用
+status_instance.manual_update(1.0)  # 减少1个回合
+```
+
+**使用场景：**
+- 回合制游戏（每回合减少持续时间）
+- 基于事件的游戏（如卡牌游戏，基于特定事件减少持续时间）
+- 需要精确控制更新时机的场景
+
 ## 创建状态
 
 ### 步骤 1: 创建状态数据
@@ -209,7 +227,9 @@ var debuffs = status_component.get_statuses_by_tag(&"debuff")
 
 状态特性用于实现复杂的状态行为。
 
-### 1. 周期性效果（Periodic Effects）
+### 内置特性
+
+#### 1. 周期性效果（Periodic Effects）
 
 定期触发效果。
 
@@ -220,7 +240,7 @@ periodic_feature.effects = [damage_effect]
 status_data.features.append(periodic_feature)
 ```
 
-### 2. 事件监听（Event Listener）
+#### 2. 事件监听（Event Listener）
 
 监听游戏事件并响应。
 
@@ -229,6 +249,34 @@ var event_feature = FeatureEventListener.new()
 event_feature.event_name = &"on_take_damage"
 event_feature.effects = [counter_attack_effect]
 status_data.features.append(event_feature)
+```
+
+### 自定义状态特性
+
+继承 `StatusFeature` 创建自定义状态特性：
+
+```gdscript
+extends StatusFeature
+class_name CustomStatusFeature
+
+## 状态应用时调用
+func apply_feature(status_instance: GameplayStatusInstance, context: Dictionary) -> void:
+    # 自定义应用逻辑
+    pass
+
+## 状态移除时调用
+func remove_feature(status_instance: GameplayStatusInstance, context: Dictionary) -> void:
+    # 自定义移除逻辑
+    pass
+
+## 状态更新时调用（每帧或手动）
+func update_feature(status_instance: GameplayStatusInstance, delta: float) -> void:
+    # 自定义更新逻辑
+    pass
+
+## 获取特性存储数据（用于在特性内部保存状态）
+func get_storage(status_instance: GameplayStatusInstance) -> Dictionary:
+    return status_instance.get_feature_storage(self)
 ```
 
 ## 状态效果
@@ -289,6 +337,8 @@ func _on_status_stacks_changed(status_instance: GameplayStatusInstance, old_stac
 
 ## 状态优先级
 
+> **TODO**: 状态优先级功能目前实现较为基础，仅支持简单的优先级比较和替换。更复杂的优先级逻辑（如优先级分组、优先级继承等）计划在后续版本中完善。
+
 状态可以设置优先级，优先级高的状态可以替换优先级低的状态。
 
 ```gdscript
@@ -296,6 +346,8 @@ func _on_status_stacks_changed(status_instance: GameplayStatusInstance, old_stac
 status_data.priority = 10  # 数字越大优先级越高
 
 # 应用状态时，如果已有相同或更高优先级的状态，可能会被替换
+# 当前实现：如果新状态的优先级更高，会移除旧状态并应用新状态
+# 如果新状态的优先级更低，则不会应用新状态
 ```
 
 ## 状态免疫
@@ -323,6 +375,46 @@ apply_status_effect.duration = 10.0
 
 # 添加到技能效果列表
 ability_definition.effects.append(apply_status_effect)
+```
+
+## 状态与标签系统集成
+
+状态系统与标签系统深度集成，状态会自动管理标签：
+
+```gdscript
+# 状态数据中配置标签
+status_data.tags = [&"debuff", &"fire"]
+
+# 状态应用时，会自动为目标添加这些标签
+# 状态移除时，会自动移除这些标签
+
+# 通过标签查询状态
+var debuffs = status_component.get_statuses_by_tag(&"debuff")
+
+# 通过标签移除状态
+status_component.remove_statuses_by_tags([&"debuff"])
+
+# 状态互斥：如果状态标签配置了互斥标签，应用时会自动移除互斥状态
+# 例如：如果"燃烧"状态与"冰冻"状态互斥，应用燃烧时会自动移除冰冻
+```
+
+## 状态与 Cue 系统集成
+
+状态可以配置 Cue（视觉反馈），实现逻辑与表现分离：
+
+```gdscript
+# 在状态数据中配置 Cue
+status_data.cue = burn_cue_resource
+
+# 状态应用时，会自动执行 Cue（播放特效、音效等）
+# 状态移除时，会自动停止 Cue
+
+# Cue 可以包含：
+# - 粒子特效
+# - 音效
+# - 模型变化
+# - UI 提示
+# 等视觉和听觉反馈
 ```
 
 ## 最佳实践

@@ -4,6 +4,16 @@
 
 技能系统（Ability System）是 Godot Gameplay Ability System 的核心模块，负责管理游戏中所有技能的学习、激活、执行和冷却。
 
+**核心设计：**
+- 技能的执行序列基于**行为树（Behavior Tree）**，通过节点组合描述技能逻辑
+- 行为树提供了灵活、可扩展的技能描述方式，支持复杂的技能流程控制
+- 使用行为树的好处：
+  - **可视化编辑**：可以在编辑器中直观地构建技能逻辑
+  - **模块化设计**：通过组合节点实现复杂行为，易于维护和复用
+  - **易于调试**：行为树执行历史清晰，便于问题定位
+  - **支持中断**：行为树支持节点中断和优先级控制
+  - **数据驱动**：技能逻辑通过资源文件配置，无需修改代码
+
 ## 核心概念
 
 ### 技能定义（Ability Definition）
@@ -39,6 +49,8 @@
 - 更新技能状态（冷却时间等）
 
 ## 技能类型
+
+> **说明**：以下技能类型是插件层提供的**配置模板**，用于快速创建常见类型的技能。用户可以在业务层继承 `GameplayAbilityDefinition` 创建自定义技能类型，实现更复杂的技能行为。
 
 ### 1. 主动技能（Active Ability）
 
@@ -85,16 +97,6 @@
 - 连击中断会重置
 
 **示例：** 三段斩、连击拳
-
-### 5. 牺牲技能（Sacrifice Ability）
-
-需要消耗生命值或其他代价的技能。
-
-**特性：**
-- 消耗生命值而非魔法值
-- 可能有生命值阈值限制
-
-**示例：** 血爆、自爆
 
 ## 技能特性（Features）
 
@@ -222,6 +224,47 @@ Sequence
 var preview = CircleAreaPreviewStrategy.new()
 preview.radius = 5.0
 ability_definition.preview_strategy = preview
+```
+
+**预览策略说明：**
+- 预览策略（[`AbilityPreviewStrategy`](../scripts/abilities/targeting/ability_preview_strategy.gd)）用于技能释放前的视觉预览
+- 与行为树中的 `TargetingStrategy`（目标选择策略）不同：
+  - **预览策略**：预览阶段，显示指示器，获取鼠标位置
+  - **目标选择策略**：执行阶段，在行为树中搜索目标单位
+
+**预览策略工作流程：**
+1. `create_indicator()`: 创建视觉指示器（如圆形贴花、箭头模型）
+2. `update_indicator()`: 根据鼠标位置更新指示器
+3. `get_targeting_context()`: 获取目标上下文数据，传递给行为树
+
+**内置预览策略：**
+- `CircleAreaPreviewStrategy`: 圆形区域预览
+- `LineAreaPreviewStrategy`: 直线区域预览
+- `ConeAreaPreviewStrategy`: 扇形区域预览
+
+**自定义预览策略：**
+```gdscript
+extends AbilityPreviewStrategy
+class_name CustomPreviewStrategy
+
+@export var custom_parameter: float = 0.0
+
+func create_indicator(parent: Node) -> Node3D:
+    # 创建自定义指示器
+    var indicator = preload("res://indicator.tscn").instantiate()
+    parent.get_tree().current_scene.add_child(indicator)
+    return indicator
+
+func update_indicator(indicator: Node3D, caster: Node3D, mouse_position: Vector3) -> void:
+    # 更新指示器位置和形状
+    indicator.global_position = mouse_position
+
+func get_targeting_context(caster: Node3D, mouse_position: Vector3) -> Dictionary:
+    # 返回目标上下文数据
+    return {
+        "target_position": mouse_position,
+        "target_type": "position"
+    }
 ```
 
 ### 步骤 5: 配置黑板默认数据
@@ -352,6 +395,37 @@ Sequence
 └── ApplyEffect (应用效果)
 ```
 
+## 技能预览系统
+
+技能预览系统允许玩家在释放技能前看到技能的影响范围或目标位置。
+
+### 预览策略配置
+
+在技能定义中配置预览策略：
+
+```gdscript
+# 创建预览策略
+var preview = CircleAreaPreviewStrategy.new()
+preview.indicator_scene = preload("res://indicator_circle.tscn")
+preview.max_range = 10.0
+preview.snap_to_ground = true
+
+# 配置到技能定义
+ability_definition.preview_strategy = preview
+ability_definition.smart_cast = false  # 是否开启智能施法（跳过预览）
+```
+
+### 预览流程
+
+1. **开始预览**：玩家按下技能键时，如果技能配置了预览策略，进入预览模式
+2. **更新预览**：鼠标移动时，更新指示器位置和形状
+3. **确认释放**：玩家点击确认时，获取目标上下文并激活技能
+4. **取消预览**：玩家按取消键时，退出预览模式
+
+### 智能施法
+
+如果技能配置了 `smart_cast = true`，则跳过预览阶段，直接向鼠标位置释放技能。
+
 ## 最佳实践
 
 1. **使用资源文件配置技能**：所有技能配置通过资源文件，避免硬编码
@@ -359,6 +433,7 @@ Sequence
 3. **使用行为树描述逻辑**：复杂技能逻辑使用行为树，易于理解和修改
 4. **利用黑板传递数据**：技能内部数据通过黑板传递，避免全局变量
 5. **响应技能信号**：通过信号响应技能事件，实现UI更新和反馈
+6. **合理使用预览策略**：需要精确瞄准的技能使用预览策略，瞬发技能可以跳过预览
 
 ## 总结
 

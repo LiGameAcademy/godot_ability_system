@@ -28,6 +28,15 @@
 - 批量创建属性实例
 - 管理属性依赖关系
 
+**属性集配置：**
+- `attributes`: 固定值属性字典（`Dictionary[GameplayAttribute, float]`）
+- `scalable_attributes`: 可扩展属性字典（`Dictionary[GameplayAttribute, ScalableValue]`）
+- 如果属性同时在两个字典中，优先使用 `scalable_attributes` 中的值
+
+**钩子函数：**
+- `resolve_dependencies(comp)`: 当组件初始化完毕，所有属性都创建好之后调用，用于计算初始的衍生属性
+- `on_attribute_changed(comp, attr_id, new_val)`: 当任何属性值发生变化时调用，用于实时更新衍生属性
+
 ### 属性实例（Attribute Instance）
 
 属性实例是属性的运行时对象，包含属性的当前值和修改器。
@@ -86,10 +95,23 @@
 2. 添加属性到属性集：
    ```gdscript
    var attribute_set = GameplayAttributeSet.new()
-   attribute_set.add_attribute(attack_attribute)
-   attribute_set.add_attribute(defense_attribute)
-   attribute_set.add_attribute(health_attribute)
+   # 方式1：使用固定值
+   attribute_set.attributes[attack_attribute] = 100.0
+   attribute_set.attributes[defense_attribute] = 50.0
+   
+   # 方式2：使用可扩展值（支持成长曲线）
+   var scalable_attack = ScalableValue.new()
+   scalable_attack.base_value = 100.0
+   scalable_attack.growth_per_level = 10.0
+   attribute_set.scalable_attributes[attack_attribute] = scalable_attack
    ```
+
+**属性集实例化：**
+```gdscript
+# 属性集会自动实例化所有属性
+var instances = attribute_set.instantiate_attributes()
+# 返回 Dictionary[StringName, GameplayAttributeInstance]
+```
 
 ### 步骤 3: 初始化属性组件
 
