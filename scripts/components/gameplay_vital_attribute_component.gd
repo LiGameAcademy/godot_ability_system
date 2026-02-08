@@ -17,6 +17,7 @@ signal vital_depleted(vital_id: StringName)
 func _ready() -> void:
 	# 确保开启 process 以处理 Vital 恢复
 	set_process(true)
+	super._ready()
 
 func _process(delta: float) -> void:
 	# 统一驱动所有 Vital 的回复
