@@ -164,3 +164,9 @@ func _validate_configuration() -> void:
 			"ActiveAbilityDefinition [%s]: 没有配置 effects，技能可能不会产生任何效果。\n" % ability_id +
 			"请确保这是预期的行为。"
 		)
+	elif not is_instance_valid(targeting_strategy):
+		push_warning(
+			"ActiveAbilityDefinition [%s]: 严重警告 - 配置了 effects 但缺少 targeting_strategy！\n" % ability_id +
+			"代价：默认行为树将无法找到目标，导致 effects 列表中的所有效果被直接跳过执行。\n" +
+			"修复：请配置 targeting_strategy（如 Area/HitDetector），或确保通过代码手动传入 input_target。"
+		)
