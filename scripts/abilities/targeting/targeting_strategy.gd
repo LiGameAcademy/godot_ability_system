@@ -19,10 +19,10 @@ class_name TargetingStrategy
 ## [param] instigator: Node 施法者
 ## [param] input_target: Node 输入目标（可能为 null，由策略决定是否使用）
 ## [param] context: Dictionary 上下文信息，可能包含：
-##   - "target_position": Vector3 目标位置（用于地面目标）
+##   - "target_position": Vector3/Vector2 目标位置（用于地面目标）
 ##   - "target_unit": Node 锁定目标（用于单位目标）
 ##   - "facing_angle": float 面朝角度（弧度）
-##   - "facing_direction": Vector3 面朝方向向量
+##   - "facing_direction": Vector3/Vector2 面朝方向向量
 ##   - "hit_detector": HitDetectorBase 命中检测器（如果技能配置了）
 ## [return] Array[Node] 解析出的目标列表（已通过筛选器过滤）
 func resolve_targets(instigator: Node, input_target: Node, context: Dictionary = {}) -> Array[Node]:

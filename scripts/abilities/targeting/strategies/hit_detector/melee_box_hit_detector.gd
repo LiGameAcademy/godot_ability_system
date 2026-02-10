@@ -15,10 +15,14 @@ class_name MeleeBoxHitDetector
 ## 攻击盒绘制颜色
 @export var debug_box_color: Color = Color.YELLOW
 
-func _get_targets(caster: Node3D, context: Dictionary = {}) -> Array[Node]:
-	if not is_instance_valid(caster): return [] as Array[Node]
+func _get_targets(caster: Node, context: Dictionary = {}) -> Array[Node]:
+	if not is_instance_valid(caster) or not (caster is Node3D):
+		return [] as Array[Node]
+	
+	var caster_3d = caster as Node3D
+	
 	# 1. 构建查询参数
-	var space_state = caster.get_world_3d().direct_space_state
+	var space_state = caster_3d.get_world_3d().direct_space_state
 	var query = PhysicsShapeQueryParameters3D.new()
 
 	# 2. 创建形状
@@ -101,4 +105,4 @@ func _draw_debug_info(caster: Node3D, box_transform: Transform3D, facing_dir: Ve
 		max_pos = max_pos.max(corner)
 
 	var world_aabb = AABB(min_pos, max_pos - min_pos)
-	DebugDraw.draw_box_aabb(world_aabb, debug_box_color, debug_linger_frames)
+	#DebugDraw.draw_box_aabb(world_aabb, debug_box_color, debug_linger_frames)

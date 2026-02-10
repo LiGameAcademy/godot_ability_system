@@ -1,33 +1,26 @@
-extends HitDetectorBase
+extends AreaHitDetectorBase
 class_name AreaHitDetector
 
 ## 区域命中检测器（物理检测）
 ## 适用于：AOE技能、非指向性技能、地雷、暴风雪
 ## 特点：精确、支持复杂形状、依赖物理引擎
 
-## 检测位置来源
-enum DetectionPositionSource {
-	CASTER_POSITION,      ## 使用施法者位置（默认，适用于献祭等范围技能）
-	TARGET_POSITION,      ## 使用目标位置（鼠标位置，适用于地面目标技能）
-	HIT_POSITION,         ## 使用命中位置（投射物爆炸位置）
-	DETECTION_POSITION    ## 使用显式指定的检测位置（通过 context["detection_position"] 传递）
-}
-
 @export_group("Area Settings")
-@export var detection_radius: float = 3.0  ## 检测半径
+# detection_radius 在基类定义
 @export var detection_shape: Shape3D = null  ## 自定义检测形状（如果为null，使用球形）
 @export_flags_3d_physics 
 var collision_mask: int = 0 | 4  ## 碰撞遮罩
-@export var detection_position_source: DetectionPositionSource = DetectionPositionSource.CASTER_POSITION  ## 检测位置来源
+# detection_position_source 在基类定义
 
 @export_group("Query Settings")
-@export var max_results: int = 32  ## 最大检测结果数量
 @export var use_world_position: bool = true  ## 是否使用世界坐标
-@export var exclude_caster: bool = true  ## 是否排除施法者自己（false 时，施法者也会被检测到，适用于治疗光环、群体Buff等）
+# max_results, exclude_caster 在基类定义
 
-func _get_targets(caster: Node3D, context: Dictionary = {}) -> Array[Node]:
-	if not is_instance_valid(caster):
+func _get_targets(caster: Node, context: Dictionary = {}) -> Array[Node]:
+	if not is_instance_valid(caster) or not (caster is Node3D):
 		return []
+	
+	var caster_3d = caster as Node3D
 
 	# 确定检测位置（根据配置项决定，允许 context 覆盖）
 	var position_source = context.get("detection_position_source", detection_position_source)
@@ -36,11 +29,7 @@ func _get_targets(caster: Node3D, context: Dictionary = {}) -> Array[Node]:
 	match position_source:
 		DetectionPositionSource.CASTER_POSITION:
 			# 使用施法者位置（适用于献祭等范围技能）
-			if caster is Node3D:
-				detection_position = caster.global_position
-			else:
-				push_warning("AreaHitDetector: Caster is not Node3D, cannot use CASTER_POSITION")
-				detection_position = Vector3.ZERO
+			detection_position = caster_3d.global_position
 		DetectionPositionSource.TARGET_POSITION:
 			if context.has("target_position") and context["target_position"] is Vector3:
 				detection_position = context["target_position"] as Vector3
@@ -142,11 +131,4 @@ func _get_targets(caster: Node3D, context: Dictionary = {}) -> Array[Node]:
 
 func _get_description() -> String:
 	var shape_name = "Sphere" if not detection_shape else detection_shape.get_class()
-	var source_names = {
-		DetectionPositionSource.CASTER_POSITION: "Caster",
-		DetectionPositionSource.TARGET_POSITION: "Target",
-		DetectionPositionSource.HIT_POSITION: "Hit",
-		DetectionPositionSource.DETECTION_POSITION: "Explicit"
-	}
-	var source_name = source_names.get(detection_position_source, "Unknown")
-	return "Area Detector: %s (Radius %.1f, Mask %d, Position: %s)" % [shape_name, detection_radius, collision_mask, source_name]
+	return "Area Detector: %s (Radius %.1f, Mask %d, Position: %s)" % [shape_name, detection_radius, collision_mask, _get_source_name()]

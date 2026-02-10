@@ -15,15 +15,14 @@ func _resolve_targets(instigator: Node, _input_target: Node, context: Dictionary
 	# 优先级1: 命中检测器（通常用于AOE范围检测）
 	var hit_detector = context.get("hit_detector")
 	if hit_detector is HitDetectorBase:
-		if instigator is Node3D:
-			targets = hit_detector.get_targets(instigator as Node3D, context)
-			if not targets.is_empty():
-				return targets
+		targets = hit_detector.get_targets(instigator, context)
+		if not targets.is_empty():
+			return targets
 
 	# 优先级2: 如果有目标位置但没有检测器，可能需要其他逻辑
 	# 例如：放置类技能可能只需要位置，不需要目标单位
 	var target_position = context.get("target_position")
-	if target_position is Vector3:
+	if target_position is Vector3 or target_position is Vector2:
 		# 这里可以扩展：根据位置查找范围内的目标
 		# 但通常应该由 hit_detector 处理
 		pass
