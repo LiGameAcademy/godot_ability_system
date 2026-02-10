@@ -3,8 +3,11 @@ class_name GAS_BTActivateAbility
 
 ## 要激活的技能 ID
 @export var ability_id: StringName = &""
+<<<<<<< HEAD
 ## [配置] 目标在黑板中的 Key
 @export var input_target_key: String = "target"
+=======
+>>>>>>> 905903ff0624dcc28fc6cc8e8573ffba41256c0d
 ## 是否等待技能执行完成
 ## true: 节点会保持 RUNNING 直到技能结束
 ## false: 技能激活成功后立即返回 SUCCESS
