@@ -5,6 +5,13 @@ class_name GAS_BTActivateAbility
 @export var ability_id: StringName = &""
 ## [配置] 目标在黑板中的 Key
 @export var input_target_key: String = "target"
+
+## [配置] 黑板变量映射到 Context (Key: Context中的Key, Value: 黑板中的Key)
+## 例如: {"threat_level": "threat", "custom_param": "my_var"}
+## 默认映射: 如果黑板中有 targets (复数目标)，尝试自动传递给技能
+@export var context_mapping: Dictionary = {
+	"targets": "targets" 
+}
 ## 是否等待技能执行完成
 ## true: 节点会保持 RUNNING 直到技能结束
 ## false: 技能激活成功后立即返回 SUCCESS
@@ -50,6 +57,15 @@ func _enter(instance: GAS_BTInstance) -> void:
 	var input_target = _get_var(instance, input_target_key)
 	if is_instance_valid(input_target):
 		context["input_target"] = input_target
+		
+	# [新增] 处理自定义 Context 映射
+	# 将黑板中的变量 (Value) 读取出来，作为 (Key) 存入 Context
+	for context_key in context_mapping:
+		var blackboard_key = context_mapping[context_key]
+		if blackboard_key is String:
+			var value = _get_var(instance, blackboard_key)
+			# 即使值为 null 也传递，保持行为一致
+			context[context_key] = value
 		
 	# 先检查是否满足激活条件（如冷却、消耗、标签限制等）
 	# 避免直接调用 try_activate_ability 可能产生的副作用或不必要的逻辑执行
