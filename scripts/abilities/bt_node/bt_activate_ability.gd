@@ -3,13 +3,14 @@ class_name GAS_BTActivateAbility
 
 ## 要激活的技能 ID
 @export var ability_id: StringName = &""
-## [配置] 目标在黑板中的 Key
-@export var input_target_key: String = "target"
 
 ## [配置] 黑板变量映射到 Context (Key: Context中的Key, Value: 黑板中的Key)
 ## 例如: {"threat_level": "threat", "custom_param": "my_var"}
-## 默认映射: 如果黑板中有 targets (复数目标)，尝试自动传递给技能
+## 默认映射: 
+## - input_target: 映射到 target (单体目标)
+## - targets: 映射到 targets (复数目标)
 @export var context_mapping: Dictionary = {
+	"input_target": "target",
 	"targets": "targets" 
 }
 ## 是否等待技能执行完成
@@ -53,19 +54,17 @@ func _enter(instance: GAS_BTInstance) -> void:
 	# 准备上下文
 	var context: Dictionary = {}
 	
-	# 从黑板获取 input_target
-	var input_target = _get_var(instance, input_target_key)
-	if is_instance_valid(input_target):
-		context["input_target"] = input_target
-		
-	# [新增] 处理自定义 Context 映射
+	# [处理 Context 映射]
 	# 将黑板中的变量 (Value) 读取出来，作为 (Key) 存入 Context
+	# 这包括 input_target, targets 以及其他任何自定义参数
 	for context_key in context_mapping:
 		var blackboard_key = context_mapping[context_key]
 		if blackboard_key is String:
-			var value = _get_var(instance, blackboard_key)
-			# 即使值为 null 也传递，保持行为一致
-			context[context_key] = value
+			# [修改] 只有当黑板中确实存在该 Key 时才传递
+			# 避免传递 null 覆盖了技能默认值，或者产生意外的空数据
+			if _has_var(instance, blackboard_key):
+				var value = _get_var(instance, blackboard_key)
+				context[context_key] = value
 		
 	# 先检查是否满足激活条件（如冷却、消耗、标签限制等）
 	# 避免直接调用 try_activate_ability 可能产生的副作用或不必要的逻辑执行
