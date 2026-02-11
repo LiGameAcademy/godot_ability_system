@@ -76,10 +76,22 @@ func try_activate(context: Dictionary = {}) -> bool:
 	# 2. 注入初始黑板数据（在设置 is_active 之前）
 	if is_instance_valid(_blackboard):
 		_blackboard.clear() # 清理上一轮的残留
-		# 将 context 注入黑板，供树节点读取
+		
+		# [第一步] 自动合并 Context 中的所有参数到黑板
+		# 先注入用户传递的参数，作为基础数据
+		for key in context:
+			_blackboard.set_var(key, context[key])
+			
+		# [第二步] 注入系统关键变量 (覆盖潜在的同名用户参数，确保安全性)
 		_blackboard.set_var("ability_instance", self)
 		_blackboard.set_var("context", context)
+		
+		# [第三步] 智能映射 target (基于 input_target)
+		# input_target 可能是 Node 或 null
+		# 我们只设置 'target' (单数)，供 TargetSearch 节点作为输入使用
+		# 'targets' (复数) 应由行为树中的索敌策略(TargetingStrategy)生成，而不应在此处硬编码
 		_blackboard.set_var("target", context.get("input_target"))
+		
 		# 设置标志，表示这是首次激活（开启操作）
 		_blackboard.set_var("is_first_activation", true)
 
