@@ -11,11 +11,16 @@ var _attributes: Dictionary[StringName, GameplayAttributeInstance] = {}
 
 ## 当前等级（用于计算 ScalableValue）
 var current_level: int = 1 : set = _set_current_level
+@export var auto_initialize: bool = false
 
 # 信号：当属性值发生变化时发出
 signal attribute_value_changed(id: StringName, new_val: float)
 ## 等级变化信号
 signal level_changed(old_level: int, new_level: int)
+
+func _ready() -> void:
+	if auto_initialize:
+		initialize()
 
 ## 初始化属性组件
 ## [param] sets: Array[GameplayAttributeSet] 属性集数组
