@@ -5,6 +5,10 @@ class_name AbilityNodeBase
 ## [配置] 目标在黑板中的 Key
 @export var target_key: String = "targets"
 
+## [配置] 目标获取策略（可选）
+## 如果设置，将优先使用策略获取目标，忽略 target_key
+@export var target_strategy: BTValueStrategy
+
 ## 获取上下文（从黑板中获取 AbilityContext）
 func _get_context(instance: GAS_BTInstance) -> Dictionary:
 	var context : Dictionary = _get_var(instance, "context", {})
@@ -14,9 +18,16 @@ func _get_context(instance: GAS_BTInstance) -> Dictionary:
 ## 支持从黑板中获取单个 Node、Array[Node] 或空值
 ## 如果目标为空，且 use_instigator_as_fallback 为 true，则使用 instigator 作为目标（自施法）
 func _get_target_list(instance: GAS_BTInstance, use_instigator_as_fallback: bool = false) -> Array[Node]:
-	var raw_targets = instance.blackboard.get_var(target_key)
 	var context = _get_context(instance)
+	var raw_targets = null
 
+	# 1. 优先使用策略获取
+	if is_instance_valid(target_strategy):
+		raw_targets = target_strategy.get_value(context, instance.blackboard)
+	else:
+		# 2. 回退到使用 target_key 从黑板获取
+		raw_targets = instance.blackboard.get_var(target_key)
+	
 	var target_list: Array[Node] = []
 	# 处理空值或空数组
 	if raw_targets == null or (raw_targets is Array and raw_targets.is_empty()):

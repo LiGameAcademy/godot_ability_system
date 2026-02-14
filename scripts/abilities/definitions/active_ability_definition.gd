@@ -22,8 +22,13 @@ class_name ActiveAbilityDefinition
 @export var effects : Array[GameplayEffect] = []
 ## 目标 Key
 @export var target_key: String = "targets"
-## 目标获取策略
+## 目标获取策略 (TargetingStrategy)
+## 用于搜索目标并写入 target_key (如果配置了此项)
 @export var targeting_strategy: TargetingStrategy = null
+## [可选] 目标获取值策略 (BTValueStrategy)
+## 如果配置，将直接使用此策略获取目标值，而不依赖 target_key (即不会使用 TargetingStrategy 的结果)。
+## 这允许你在不使用 TargetSearch 节点的情况下，灵活指定目标 (如自施法)。
+@export var target_value_strategy: BTValueStrategy = null
 ## 技能快捷键
 @export var input_action : StringName = &""
 
@@ -111,6 +116,8 @@ func _build_effect_nodes() -> GAS_BTNode:
 		var effect_node = AbilityNodeApplyEffect.new()
 		effect_node.effects = effects.duplicate()
 		effect_node.target_key = target_key
+		if is_instance_valid(target_value_strategy):
+			effect_node.target_strategy = target_value_strategy
 		effect_node.node_id = "apply_effect"
 		return effect_node
 	return null
