@@ -175,10 +175,7 @@ func can_activate_ability(ability_id: StringName, context: Dictionary = {}) -> b
 	if ability_instance.disabled:
 		return false
 
-	context.ability = ability_instance
-	context.ability_component = self
-	context.ability_id = ability_id
-	context.instigator = get_parent()
+	_prepare_context(ability_id, ability_instance, context)
 	
 	return ability_instance.can_activate(context)
 
@@ -193,10 +190,7 @@ func try_activate_ability(ability_id: StringName, context: Dictionary = {}) -> b
 		push_error("GameplayAbilityComponent: Ability instance is not valid.")
 		return false
 	
-	context.ability = ability_instance
-	context.ability_component = self
-	context.ability_id = ability_id
-	context.instigator = get_parent()
+	_prepare_context(ability_id, ability_instance, context)
 	
 	# 正常执行技能：检查消耗和冷却（由 Ability 自己处理）
 	# 注意：冷却检查、冷却时间计算、冷却缩减应用都由 Ability._commit_cast() 处理
@@ -204,6 +198,32 @@ func try_activate_ability(ability_id: StringName, context: Dictionary = {}) -> b
 		push_error("GameplayAbilityComponent: Ability %s try activate failed." % ability_instance.get_definition().ability_id)
 		return false
 
+	_on_ability_activated(ability_instance)
+	return true
+
+## 强制激活技能（跳过 can_activate 检查）
+## [param] ability_id: StringName 技能ID
+## [param] context: 技能执行上下文
+func activate_ability(ability_id: StringName, context: Dictionary = {}) -> void:
+	var ability_instance = get_ability_instance(ability_id)
+	if not is_instance_valid(ability_instance):
+		push_error("GameplayAbilityComponent: Ability instance is not valid.")
+		return
+	
+	_prepare_context(ability_id, ability_instance, context)
+	
+	ability_instance.activate(context)
+	_on_ability_activated(ability_instance)
+
+## 内部准备技能上下文
+func _prepare_context(ability_id: StringName, ability_instance: GameplayAbilityInstance, context: Dictionary) -> void:
+	context.ability = ability_instance
+	context.ability_component = self
+	context.ability_id = ability_id
+	context.instigator = get_parent()
+
+## 内部处理技能激活后的通用逻辑
+func _on_ability_activated(ability_instance: GameplayAbilityInstance) -> void:
 	# 设置当前正在执行的技能（用于后摇可取消机制）
 	_current_casting_ability = ability_instance
 
@@ -216,7 +236,6 @@ func try_activate_ability(ability_id: StringName, context: Dictionary = {}) -> b
 	# 订阅技能完成信号（如果尚未订阅）
 	if not ability_instance.ability_completed.is_connected(_on_ability_completed):
 		ability_instance.ability_completed.connect(_on_ability_completed)
-	return true
 #endregion
 
 ## 强制中断当前技能（任何阶段都可以中断）

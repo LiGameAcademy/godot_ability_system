@@ -56,15 +56,14 @@ func try_activate(context: Dictionary = {}) -> bool:
 		if not can_activate(context):
 			return true
 		
-		# 有特性允许重新激活，注入上下文数据并调用 on_activate
+		# 有特性允许重新激活，注入上下文数据并同步到黑板
 		if is_instance_valid(_blackboard):
-			_blackboard.set_var("context", context)
+			_sync_context_to_blackboard(context)
 
 		# 调用所有特性的 on_activate 钩子
 		for feature in _features.values():
 			if not is_instance_valid(feature):
 				continue
-
 			feature.on_activate(self, context)
 
 		return true
@@ -73,39 +72,45 @@ func try_activate(context: Dictionary = {}) -> bool:
 	if not can_activate(context):
 		return false
 
-	# 2. 注入初始黑板数据（在设置 is_active 之前）
+	# 2. 正式激活
+	activate(context)
+	return true
+
+## 真正执行激活逻辑（跳过 can_activate 检查）
+func activate(context: Dictionary = {}) -> void:
+	# 1. 准备环境与黑板数据
 	if is_instance_valid(_blackboard):
 		_blackboard.clear() # 清理上一轮的残留
+		_sync_context_to_blackboard(context)
 		
-		# [第一步] 自动合并 Context 中的所有参数到黑板
-		# 先注入用户传递的参数，作为基础数据
-		for key in context:
-			_blackboard.set_var(key, context[key])
-			
-		# [第二步] 注入系统关键变量 (覆盖潜在的同名用户参数，确保安全性)
-		_blackboard.set_var("ability_instance", self)
-		_blackboard.set_var("context", context)
-		
-		# [第三步] 智能映射 target (基于 input_target)
-		# input_target 可能是 Node 或 null
-		# 我们只设置 'target' (单数)，供 TargetSearch 节点作为输入使用
-		# 'targets' (复数) 应由行为树中的索敌策略(TargetingStrategy)生成，而不应在此处硬编码
-		_blackboard.set_var("target", context.get("input_target"))
-		
-		# 设置标志，表示这是首次激活（开启操作）
+		# 设置标志，表示这是首次激活
 		_blackboard.set_var("is_first_activation", true)
 
-	# 3. 调用所有特性的 on_activate 钩子（在设置 is_active 之前）
+	# 2. 调用所有特性的 on_activate 钩子
 	for feature in _features.values():
 		if not is_instance_valid(feature):
 			continue
 		feature.on_activate(self, context)
 
-	# 4. 【关键】启动行为树（在调用 on_activate 之后）
-	# 注意：这里我们只"启动"状态，不扣蓝，也不产生效果。
-	# 扣蓝和效果由树里面的节点决定何时发生。
+	# 3. 启动状态
 	is_active = true
-	return true
+
+## 将上下文数据同步到黑板
+func _sync_context_to_blackboard(context: Dictionary) -> void:
+	if not is_instance_valid(_blackboard):
+		return
+		
+	# [第一步] 自动合并 Context 中的所有参数到黑板
+	# 保证灵活性，允许 Feature 或外部逻辑通过 context 传递自定义数据
+	for key in context:
+		_blackboard.set_var(key, context[key])
+		
+	# [第二步] 注入系统关键变量 (覆盖潜在的同名用户参数，确保安全性)
+	_blackboard.set_var("ability_instance", self)
+	_blackboard.set_var("context", context)
+	
+	# 智能映射 target (基于 input_target)
+	_blackboard.set_var("target", context.get("input_target"))
 
 # 每帧更新（用于需要持续更新的技能，如连击计时器、引导技能）
 func update(delta: float) -> void:
