@@ -1,8 +1,15 @@
 extends GAS_BTAction
 class_name GAS_BTActivateAbility
 
+## 缓存 AbilityComponent 实例的 Blackboard Key (直接缓存对象引用)
+const CACHE_KEY_ABILITY_COMPONENT = "_gameplay_ability_component_ref"
+
 ## 要激活的技能 ID
 @export var ability_id: StringName = &""
+
+## [可选] GameplayAbilityComponent 所在的节点路径
+## 如果为空，将尝试自动查找
+@export var ability_component_path: NodePath = ^""
 
 ## [配置] 黑板变量映射到 Context (Key: Context中的Key, Value: 黑板中的Key)
 ## 例如: {"threat_level": "threat", "custom_param": "my_var"}
@@ -91,20 +98,19 @@ func _exit(instance: GAS_BTInstance) -> void:
 	_clear_storage(instance)
 
 func _get_ability_component(instance: GAS_BTInstance) -> GameplayAbilityComponent:
-	# 1. 尝试查找名为 GameplayAbilityComponent 的子节点
-	var comp = instance.agent.get_node_or_null("GameplayAbilityComponent")
-	if comp is GameplayAbilityComponent:
-		return comp
+	# 1. 尝试从 Blackboard 获取缓存的实例
+	var cached_comp = instance.blackboard.get_var(CACHE_KEY_ABILITY_COMPONENT, null)
+	if is_instance_valid(cached_comp) and cached_comp is GameplayAbilityComponent:
+		return cached_comp
+
+	# 2. 如果没有缓存或无效，则执行查找逻辑
+	if not ability_component_path.is_empty():
+		var node = instance.owner_node.get_node_or_null(ability_component_path)
+		if node is GameplayAbilityComponent:
+			instance.blackboard.set_var(CACHE_KEY_ABILITY_COMPONENT, node)
+			return node
 	
-	# 2. 尝试直接获取（如果 agent 本身有方法）
-	if instance.agent.has_method("get_ability_component"):
-		return instance.agent.get_ability_component()	
-	
-	# 3. 遍历查找
-	for child in instance.agent.get_children():
-		if child is GameplayAbilityComponent:
-			return child
-	
+	push_warning("GAS_BTActivateAbility: GameplayAbilityComponent not found on agent %s (Ability: %s)" % [instance.agent, ability_id])
 	return null
 
 func _get_node_name() -> StringName:
