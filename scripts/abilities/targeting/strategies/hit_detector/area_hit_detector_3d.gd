@@ -12,7 +12,7 @@ class_name AreaHitDetector3D
 		detection_shape = value
 		notify_property_list_changed()
 @export_flags_3d_physics 
-var collision_mask: int = 0 | 4  ## 碰撞遮罩
+var collision_mask: int = 0 ## 碰撞遮罩
 # detection_position_source 在基类定义
 
 @export_group("Query Settings")
