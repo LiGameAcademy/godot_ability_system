@@ -46,6 +46,32 @@ func get_value(id: StringName, default: float = 0.0) -> float:
 		return default
 	return _attributes[id].get_value()
 
+## 获取属性基础值
+## [param] id: StringName 属性ID
+## [param] default: float 默认值（如果属性不存在）
+## [return] float 属性基础值
+func get_base_value(id: StringName, default: float = 0.0) -> float:
+	if not has_attribute(id):
+		push_warning("GameplayAttributeComponent: Attribute with id %s not found" % id)
+		return default
+	return _attributes[id].base_value
+
+## 获取属性当前值与基础值的比例 (current / base)
+## [param] id: StringName 属性ID
+## [param] default_ratio: float 默认比例（如果属性不存在或基础值为0）
+## [return] float 比例值
+func get_attribute_ratio(id: StringName, default_ratio: float = 1.0) -> float:
+	if not has_attribute(id):
+		push_warning("GameplayAttributeComponent: Attribute with id %s not found, returning default ratio" % id)
+		return default_ratio
+		
+	var base = _attributes[id].base_value
+	if is_zero_approx(base):
+		push_warning("GameplayAttributeComponent: Base value of attribute %s is zero, returning default ratio" % id)
+		return default_ratio
+		
+	return _attributes[id].get_value() / base
+
 ## 获取属性实例
 ## [param] id: StringName 属性ID
 ## [return] GameplayAttributeInstance 属性实例（如果不存在返回 null）
