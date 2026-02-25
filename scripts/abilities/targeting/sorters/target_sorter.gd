@@ -19,4 +19,3 @@ func compare(a: Node, b: Node, context: Dictionary) -> bool:
 ## [param] context: Dictionary 上下文
 func prepare(targets: Array[Node], context: Dictionary) -> void:
 	pass
-
