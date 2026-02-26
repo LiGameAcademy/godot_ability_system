@@ -10,8 +10,8 @@ class_name HitDetectorTargetingStrategy
 func _resolve_targets(instigator: Node, input_target: Node, context: Dictionary) -> Array[Node]:
 	var final_targets : Array[Node] = []
 	# 使用配置的 hit_detector
-	if is_instance_valid(hit_detector) and instigator is Node3D:
-		var targets := hit_detector.get_targets(instigator as Node3D, context)
+	if is_instance_valid(hit_detector):
+		var targets := hit_detector.get_targets(instigator, context)
 		for target in targets:
 			final_targets.append(target)
 	return final_targets
