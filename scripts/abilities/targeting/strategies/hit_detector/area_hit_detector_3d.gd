@@ -28,12 +28,6 @@ func _get_targets(caster: Node, context: Dictionary = {}) -> Array[Node]:
 	# 确定检测位置（根据配置项决定，允许 context 覆盖）
 	var detection_position = get_detection_position(caster_3d, context)
 
-	# 调试信息
-	if detection_position == Vector3.ZERO:
-		print("AreaHitDetector3D: WARNING - Using Vector3.ZERO as detection position! Source: %d" % position_source)
-	else:
-		print("AreaHitDetector3D: Using detection position: %s (Source: %d)" % [detection_position, position_source])
-	
 	var offset: Vector3 = context.get(offset_key, Vector3.ZERO)
 	detection_position += offset
 
@@ -152,5 +146,11 @@ func get_detection_position(caster_3d: Node3D, context: Dictionary) -> Vector3:
 		_:
 			push_warning("AreaHitDetector3D: Unknown detection_position_source: %d" % position_source)
 			detection_position = Vector3.ZERO
-			
+	
+	# 调试信息
+	if detection_position == Vector3.ZERO:
+		print("AreaHitDetector3D: WARNING - Using Vector3.ZERO as detection position! Source: %d" % position_source)
+	else:
+		print("AreaHitDetector3D: Using detection position: %s (Source: %d)" % [detection_position, position_source])
+	
 	return detection_position
