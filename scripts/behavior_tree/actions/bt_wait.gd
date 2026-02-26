@@ -9,6 +9,12 @@ class_name GAS_BTWait
 func _enter(instance: GAS_BTInstance):
 	# 获取实际的等待时间（优先从黑板读取）
 	var actual_duration = _get_actual_duration(instance)
+	
+	# 应用时间缩放（如果黑板中有 time_scale）
+	var time_scale = instance.blackboard.get_var("time_scale", 1.0)
+	if time_scale > 0:
+		actual_duration = actual_duration / time_scale
+		
 	var end_time = Time.get_ticks_msec() / 1000.0 + actual_duration
 	_set_storage(instance, end_time)
 

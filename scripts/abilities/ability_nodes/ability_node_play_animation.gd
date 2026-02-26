@@ -24,6 +24,10 @@ func _enter(instance: GAS_BTInstance) -> void:
 	if final_targets.is_empty():
 		return
 	
+	# 获取时间缩放
+	var time_scale: float = instance.blackboard.get_var("time_scale", 1.0)
+	var final_speed = animation_speed * time_scale
+
 	for target in final_targets:
 		if not is_instance_valid(target):
 			continue
@@ -32,7 +36,7 @@ func _enter(instance: GAS_BTInstance) -> void:
 			push_warning("AbilityNodePlayAnimation: 方法 '%s' 在 AbilityInstance 上不存在。动画 '%s' 播放失败。" % [play_animation_method, animation_name])
 			continue
 
-		target.call(play_animation_method, animation_name, animation_speed)
+		target.call(play_animation_method, animation_name, final_speed)
 
 func _tick(instance: GAS_BTInstance, delta: float) -> int:
 	return Status.SUCCESS
