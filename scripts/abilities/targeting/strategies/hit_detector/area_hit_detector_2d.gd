@@ -27,32 +27,7 @@ func _get_targets(caster: Node, context: Dictionary = {}) -> Array[Node]:
 	var caster_2d = caster as Node2D
 
 	# 确定检测位置（根据配置项决定，允许 context 覆盖）
-	var position_source = context.get("detection_position_source", detection_position_source)
-	var detection_position: Vector2 = Vector2.ZERO
-
-	match position_source:
-		DetectionPositionSource.CASTER_POSITION:
-			# 使用施法者位置
-			detection_position = caster_2d.global_position
-		DetectionPositionSource.TARGET_POSITION:
-			if context.has("target_position") and context["target_position"] is Vector2:
-				detection_position = context["target_position"] as Vector2
-			else:
-				push_warning("AreaHitDetector2D: TARGET_POSITION source selected but target_position not found in context or invalid")
-				detection_position = Vector2.ZERO
-		DetectionPositionSource.HIT_POSITION:
-			# 使用命中位置
-			if context.has("hit_position") and context["hit_position"] is Vector2:
-				detection_position = context["hit_position"] as Vector2
-			else:
-				push_warning("AreaHitDetector2D: HIT_POSITION source selected but hit_position not found in context")
-				detection_position = Vector2.ZERO
-		DetectionPositionSource.DETECTION_POSITION:
-			# 使用显式指定的检测位置
-			if context.has("detection_position") and context["detection_position"] is Vector2:
-				detection_position = context["detection_position"] as Vector2
-			else:
-				detection_position = Vector2.ZERO
+	var detection_position = get_detection_position(caster_2d, context)
 	
 	var offset: Vector2 = context.get(offset_key, Vector2.ZERO)
 	detection_position += offset
@@ -110,3 +85,33 @@ func _get_property_list() -> Array[Dictionary]:
 
 func _get_description() -> String:
 	return "Area Hit Detector 2D (Radius: %.1f, Mask: %d, Source: %s)" % [detection_radius, collision_mask, _get_source_name()]
+
+func get_detection_position(caster_2d: Node2D, context: Dictionary) -> Vector2:
+	var position_source = context.get("detection_position_source", detection_position_source)
+	var detection_position: Vector2 = Vector2.ZERO
+
+	match position_source:
+		DetectionPositionSource.CASTER_POSITION:
+			# 使用施法者位置
+			detection_position = caster_2d.global_position
+		DetectionPositionSource.TARGET_POSITION:
+			if context.has("target_position") and context["target_position"] is Vector2:
+				detection_position = context["target_position"] as Vector2
+			else:
+				push_warning("AreaHitDetector2D: TARGET_POSITION source selected but target_position not found in context or invalid")
+				detection_position = Vector2.ZERO
+		DetectionPositionSource.HIT_POSITION:
+			# 使用命中位置
+			if context.has("hit_position") and context["hit_position"] is Vector2:
+				detection_position = context["hit_position"] as Vector2
+			else:
+				push_warning("AreaHitDetector2D: HIT_POSITION source selected but hit_position not found in context")
+				detection_position = Vector2.ZERO
+		DetectionPositionSource.DETECTION_POSITION:
+			# 使用显式指定的检测位置
+			if context.has("detection_position") and context["detection_position"] is Vector2:
+				detection_position = context["detection_position"] as Vector2
+			else:
+				detection_position = Vector2.ZERO
+				
+	return detection_position

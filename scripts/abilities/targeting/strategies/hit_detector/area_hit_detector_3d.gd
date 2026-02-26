@@ -26,35 +26,7 @@ func _get_targets(caster: Node, context: Dictionary = {}) -> Array[Node]:
 	var caster_3d = caster as Node3D
 
 	# 确定检测位置（根据配置项决定，允许 context 覆盖）
-	var position_source = context.get("detection_position_source", detection_position_source)
-	var detection_position: Vector3 = Vector3.ZERO
-
-	match position_source:
-		DetectionPositionSource.CASTER_POSITION:
-			# 使用施法者位置（适用于献祭等范围技能）
-			detection_position = caster_3d.global_position
-		DetectionPositionSource.TARGET_POSITION:
-			if context.has("target_position") and context["target_position"] is Vector3:
-				detection_position = context["target_position"] as Vector3
-			else:
-				push_warning("AreaHitDetector3D: TARGET_POSITION source selected but target_position not found in context")
-				detection_position = Vector3.ZERO
-		DetectionPositionSource.HIT_POSITION:
-			if context.has("hit_position") and context["hit_position"] is Vector3:
-				detection_position = context["hit_position"] as Vector3
-			else:
-				push_warning("AreaHitDetector3D: HIT_POSITION source selected but hit_position not found in context")
-				detection_position = Vector3.ZERO
-		DetectionPositionSource.DETECTION_POSITION:
-			# 使用显式指定的检测位置（通过 context["detection_position"] 传递）
-			if context.has("detection_position") and context["detection_position"] is Vector3:
-				detection_position = context["detection_position"] as Vector3
-			else:
-				push_warning("AreaHitDetector3D: DETECTION_POSITION source selected but detection_position not found in context")
-				detection_position = Vector3.ZERO
-		_:
-			push_warning("AreaHitDetector3D: Unknown detection_position_source: %d" % position_source)
-			detection_position = Vector3.ZERO
+	var detection_position = get_detection_position(caster_3d, context)
 
 	# 调试信息
 	if detection_position == Vector3.ZERO:
@@ -149,3 +121,36 @@ func _get_property_list() -> Array[Dictionary]:
 func _get_description() -> String:
 	var shape_name = "Sphere" if not detection_shape else detection_shape.get_class()
 	return "Area Detector: %s (Radius %.1f, Mask %d, Position: %s)" % [shape_name, detection_radius, collision_mask, _get_source_name()]
+
+func get_detection_position(caster_3d: Node3D, context: Dictionary) -> Vector3:
+	var position_source = context.get("detection_position_source", detection_position_source)
+	var detection_position: Vector3 = Vector3.ZERO
+
+	match position_source:
+		DetectionPositionSource.CASTER_POSITION:
+			# 使用施法者位置（适用于献祭等范围技能）
+			detection_position = caster_3d.global_position
+		DetectionPositionSource.TARGET_POSITION:
+			if context.has("target_position") and context["target_position"] is Vector3:
+				detection_position = context["target_position"] as Vector3
+			else:
+				push_warning("AreaHitDetector3D: TARGET_POSITION source selected but target_position not found in context")
+				detection_position = Vector3.ZERO
+		DetectionPositionSource.HIT_POSITION:
+			if context.has("hit_position") and context["hit_position"] is Vector3:
+				detection_position = context["hit_position"] as Vector3
+			else:
+				push_warning("AreaHitDetector3D: HIT_POSITION source selected but hit_position not found in context")
+				detection_position = Vector3.ZERO
+		DetectionPositionSource.DETECTION_POSITION:
+			# 使用显式指定的检测位置（通过 context["detection_position"] 传递）
+			if context.has("detection_position") and context["detection_position"] is Vector3:
+				detection_position = context["detection_position"] as Vector3
+			else:
+				push_warning("AreaHitDetector3D: DETECTION_POSITION source selected but detection_position not found in context")
+				detection_position = Vector3.ZERO
+		_:
+			push_warning("AreaHitDetector3D: Unknown detection_position_source: %d" % position_source)
+			detection_position = Vector3.ZERO
+			
+	return detection_position
