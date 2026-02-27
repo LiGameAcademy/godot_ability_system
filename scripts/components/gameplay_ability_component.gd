@@ -308,6 +308,26 @@ func has_targeting_ability() -> bool:
 func get_current_targeting_ability() -> GameplayAbilityInstance:
 	return _current_targeting_ability
 
+func update_targeting(delta: float, input_context: Dictionary = {}) -> void:
+	if is_instance_valid(_current_targeting_ability):
+		_current_targeting_ability.update_targeting(delta, input_context)
+
+func confirm_targeting() -> Dictionary:
+	if is_instance_valid(_current_targeting_ability):
+		return _current_targeting_ability.confirm_targeting()
+	return {}
+
+func cancel_targeting() -> void:
+	if is_instance_valid(_current_targeting_ability):
+		_current_targeting_ability.cancel_targeting()
+		_current_targeting_ability = null
+
+func try_activate_targeting_ability() -> bool:
+	if is_instance_valid(_current_targeting_ability):
+		_current_targeting_ability.try_activate_targeting()
+		return true
+	return false
+
 #endregion
 
 #region ========== 私有方法 - 事件回调 ==========

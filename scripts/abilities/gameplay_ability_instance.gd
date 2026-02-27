@@ -15,9 +15,6 @@ var disabled : bool = false:
 	get:
 		return _definition.disabled
 
-var _indicator_instance: Node3D = null
-var _is_targeting: bool = false
-
 ## 技能完成信号
 signal ability_completed(ability: GameplayAbilityInstance)
 ## 技能数据改变
@@ -215,52 +212,35 @@ func should_smart_cast() -> bool:
 	return _definition.smart_cast
 
 ## [API] 开始预览模式
-func start_targeting() -> void:
-	if not has_targeting(): 
+func start_targeting(extra_context: Dictionary = {}) -> void:
+	if not has_targeting():
 		return
-	_is_targeting = true
-	# 使用策略创建视觉指示器
-	_indicator_instance = _definition.preview_strategy.create_indicator(_owner)
+	_definition.preview_strategy.begin(_owner, self, extra_context)
 
 ## [API] 更新预览 (每帧调用)
-## [param] mouse_pos: 鼠标在世界空间的坐标
-func update_targeting(mouse_pos: Vector3) -> void:
-	if not _is_targeting or not is_instance_valid(_indicator_instance):
+func update_targeting(delta: float, input_context: Dictionary = {}) -> void:
+	if not is_targeting():
 		return
 
-	_definition.preview_strategy.update_indicator(
-		_indicator_instance, 
-		_owner, 
-		mouse_pos
-	)
+	_definition.preview_strategy.update(delta, input_context)
 	
 ## [API] 确认预览 -> 返回 Context 数据
-## [param] mouse_pos: 最终确定的位置
-func confirm_targeting(mouse_pos: Vector3) -> Dictionary:
+func confirm_targeting() -> Dictionary:
 	var context = {}
 	if has_targeting():
 		# 使用策略计算最终数据
-		context = _definition.preview_strategy.get_targeting_context(_owner, mouse_pos)
-	_stop_targeting_visuals()
+		context = _definition.preview_strategy.get_result_context()
 	return context
 
 ## [API] 取消预览
 func cancel_targeting() -> void:
-	# 如果是光标策略，需要恢复默认光标
 	if is_instance_valid(_definition.preview_strategy):
-		_definition.preview_strategy.cancel_targeting()
+		_definition.preview_strategy.cancel()
 		
-	_stop_targeting_visuals()
-
-## 内部清理
-func _stop_targeting_visuals() -> void:
-	_is_targeting = false
-
-	# 清理 3D 指示器（如果有）
-	if is_instance_valid(_indicator_instance):
-		_indicator_instance.queue_free()
-		_indicator_instance = null
-
+func is_targeting() -> bool:
+	if not is_instance_valid(_definition.preview_strategy):
+		return false
+	return _definition.preview_strategy.is_targeting()
 #endregion
 
 func get_current_icon() -> Texture:
