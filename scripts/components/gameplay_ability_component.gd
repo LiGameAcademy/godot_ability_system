@@ -312,6 +312,7 @@ func update_targeting(delta: float, input_context: Dictionary = {}) -> void:
 	if is_instance_valid(_current_targeting_ability):
 		_current_targeting_ability.update_targeting(delta, input_context)
 
+## 完成技能预览
 func confirm_targeting() -> Dictionary:
 	if is_instance_valid(_current_targeting_ability):
 		return _current_targeting_ability.confirm_targeting()
