@@ -16,7 +16,7 @@ var disabled : bool = false:
 		return _definition.disabled
 
 ## 技能完成信号
-signal ability_completed(ability: GameplayAbilityInstance)
+signal ability_completed(success: bool)
 ## 技能数据改变
 signal ability_data_changed(ability: GameplayAbilityInstance)
 
@@ -115,9 +115,10 @@ func end_ability(final_status: int = GAS_BTNode.Status.SUCCESS) -> void:
 	for feature in _features.values():
 		if is_instance_valid(feature): 
 			feature.on_completed(self)
-			
+	
+	var success := final_status == GAS_BTNode.Status.SUCCESS
 	# 发出信号
-	ability_completed.emit(self)
+	ability_completed.emit(success)
 
 	# (可选) 如果树还在跑但被强制结束，重置树
 	if is_instance_valid(_bt_instance):
