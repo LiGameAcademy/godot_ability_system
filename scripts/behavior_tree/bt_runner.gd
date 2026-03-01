@@ -30,8 +30,7 @@ func _ready() -> void:
 		active = false
 		return
 
-	_instance = GAS_BTInstance.new(agent, tree_root, GAS_BTBlackboard.new(blackboard_defaults))
-	_instance.blackboard.set_var("runner_node", self)
+	_instance = GAS_BTInstance.new(agent, tree_root, GAS_BTBlackboard.new(blackboard_defaults), self)
 	
 	_update_process_mode()
 

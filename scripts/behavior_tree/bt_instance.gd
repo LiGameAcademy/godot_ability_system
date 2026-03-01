@@ -2,6 +2,9 @@ extends RefCounted
 class_name GAS_BTInstance
 
 var agent: Node
+## [可选] 行为树的拥有者/上下文节点（通常是 AbilityComponent, AIController 或 AbilityInstance）
+## 用于提供除 agent (操作对象) 之外的上下文信息
+var owner_node: Object = null
 var tree_root: GAS_BTNode
 var blackboard: GAS_BTBlackboard
 
@@ -19,10 +22,11 @@ var execution_history: Array[Dictionary] = []
 var _max_history_size: int = 100
 var _current_frame: int = 0
 
-func _init(p_agent: Node, p_tree_root: GAS_BTNode, p_blackboard: GAS_BTBlackboard = null) -> void:
+func _init(p_agent: Node, p_tree_root: GAS_BTNode, p_blackboard: GAS_BTBlackboard = null, p_owner_node: Object = null) -> void:
 	agent = p_agent
 	tree_root = p_tree_root
 	blackboard = p_blackboard if is_instance_valid(p_blackboard) else GAS_BTBlackboard.new()
+	owner_node = p_owner_node
 	blackboard.value_changed.connect(_on_blackboard_changed)
 
 func tick(delta: float) -> int:
