@@ -17,7 +17,7 @@ func _get_target_list(instance: GAS_BTInstance, use_instigator_as_fallback: bool
 	var raw_targets = instance.blackboard.get_var(target_key)
 	var context = _get_context(instance)
 
-	var target_list: Array[Node] = []
+	var target_list: Array[Node] = context.get(target_key)
 	# 处理空值或空数组
 	if raw_targets == null or (raw_targets is Array and raw_targets.is_empty()):
 		if use_instigator_as_fallback and is_instance_valid(context.get("instigator")):
