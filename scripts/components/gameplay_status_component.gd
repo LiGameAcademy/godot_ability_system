@@ -21,7 +21,7 @@ func _process(delta: float) -> void:
 	var statuses_to_remove: Array[StringName] = []
 
 	for status_id in _active_statuses.keys():
-		var instance = _active_statuses.get(status_id)
+		var instance : GameplayStatusInstance = _active_statuses.get(status_id)
 		if not is_instance_valid(instance):
 			statuses_to_remove.append(status_id)
 			continue
@@ -55,10 +55,10 @@ func apply_status(gsd: GameplayStatusData, instigator: Node, stacks: int = 1, co
 	# 3. 创建并应用新实例
 	return _create_and_apply_new_status_instance(gsd, instigator, stacks, context)
 
-func remove_status(status_id: StringName) -> void:
+func remove_status(status_id: StringName) -> bool:
 	var instance = _active_statuses.get(status_id)
 	if not is_instance_valid(instance): 
-		return
+		return false
 		
 	_active_statuses.erase(status_id)
 	instance.remove()
@@ -72,6 +72,7 @@ func remove_status(status_id: StringName) -> void:
 		"entity": get_parent(),
 		"status_id": status_id
 	})
+	return true
 	
 func remove_statuses_by_tags(tags_to_remove: Array[StringName]) -> void:
 	for status_id in _active_statuses.keys():

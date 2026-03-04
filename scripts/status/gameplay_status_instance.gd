@@ -7,6 +7,7 @@ class_name GameplayStatusInstance
 var status_data: GameplayStatusData
 var owner_component: GameplayStatusComponent  ## 状态组件
 var instigator: Node  ## 施加者
+## 层数
 var stacks: int = 1
 
 # 计时管理（由组件统一管理，这里只存储剩余时间）

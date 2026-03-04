@@ -107,15 +107,15 @@ func learn_ability(ability_data: GameplayAbilityDefinition) -> void:
 	
 ## 遗忘技能
 ## [param] ability_id: StringName 技能ID
-func forget_ability(ability_id: StringName) -> void:
+func forget_ability(ability_id: StringName) -> bool:
 	if not _learned_abilities.has(ability_id):
 		push_warning("GameplayAbilityComponent: Ability %s not found." % ability_id)
-		return
+		return false
 	var ability_instance : GameplayAbilityInstance = _learned_abilities[ability_id]
 	# 取消订阅信号
 	if not is_instance_valid(ability_instance):
 		push_warning("GameplayAbilityComponent: Ability %s not found." % ability_id)
-		return
+		return false
 	
 	if ability_instance.ability_completed.is_connected(_on_ability_completed.bind(ability_instance)):
 		ability_instance.ability_completed.disconnect(_on_ability_completed.bind(ability_instance))
@@ -128,6 +128,7 @@ func forget_ability(ability_id: StringName) -> void:
 		"entity": get_parent(),
 		"ability_id": ability_id
 	})
+	return true
 
 ## 禁用技能
 ## [param] ability_id: StringName 技能ID

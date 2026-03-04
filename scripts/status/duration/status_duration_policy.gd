@@ -31,6 +31,10 @@ func accumulate(instance: GameplayStatusInstance, duration: float) -> void:
 	_accumulate(instance, duration)
 	
 ## 处理事件
+## [param] instance: GameplayStatusInstance 状态实例
+## [param] event_id: StringName 事件ID
+## [param] event_context: Dictionary 事件上下文
+## [return] bool 是否应该移除状态
 func handle_event(instance: GameplayStatusInstance, event_id : StringName, event_context: Dictionary) -> bool:
 	return _handle_event(instance, event_id, event_context)
 
