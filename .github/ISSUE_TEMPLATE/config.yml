@@ -1,1 +1,14 @@
-blank_issues_enabled: true
+blank_issues_enabled: false
+contact_links:
+  - name: 💬 社区讨论
+    url: https://discord.gg/V5nuzC2BcJ
+    about: 加入Discord服务器参与讨论
+  - name: 🤝 QQ交流群
+    url: https://qm.qq.com/cgi-bin/qm/qr?k=xxx&jump_from=webapi
+    about: 加入QQ群752388002交流
+  - name: 🌟 知识星球
+    url: https://wx.zsxq.com/group/28885154818841
+    about: 加入知识星球获取更多支持
+  - name: 📺 B站主页
+    url: https://space.bilibili.com/8618918
+    about: 观看视频教程和开发日志
