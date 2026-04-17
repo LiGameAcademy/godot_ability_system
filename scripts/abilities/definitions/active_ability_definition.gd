@@ -86,6 +86,7 @@ func _build_default_behavior_tree(include_cooldown: bool = true, include_cost: b
 	if is_instance_valid(targeting_strategy):
 		var target_search_node = AbilityNodeTargetSearch.new()
 		target_search_node.strategy = targeting_strategy
+		target_search_node.write_to_key = target_key
 		target_search_node.node_id = "target_search"
 		nodes.append(target_search_node)
 
