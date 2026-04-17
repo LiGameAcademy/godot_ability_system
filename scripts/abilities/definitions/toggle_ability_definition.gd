@@ -4,26 +4,26 @@ class_name ToggleAbilityDefinition
 """
 Root Sequence
 ├── AbilityNodePlayAnimation      # 1. 播放动画
-├── BTWait                        # 2. 前摇等待
+├── GAS_BTWait                        # 2. 前摇等待
 ├── AbilityNodeTargetSearch       # 3. 查找目标
-├── BTRepeatUntilFailure          # 4. 循环执行直到关闭
-│   └── BTSelector                # 5. 切换选择器
+├── GAS_BTRepeatUntilFailure          # 4. 循环执行直到关闭
+│   └── GAS_BTSelector                # 5. 切换选择器
 │       ├── Turn Off Sequence    # 分支1：关闭逻辑
-│       │   ├── BTCheckVar        # toggle_action == "turn_off"
+│       │   ├── GAS_BTCheckVar        # toggle_action == "turn_off"
 │       │   ├── AbilityNodeRemoveStatus
-│       │   ├── BTSetVar (clear icon)
+│       │   ├── GAS_BTSetVar (clear icon)
 │       │   ├── AbilityNodeCommitCooldown
-│       │   └── BTCheckVar (end marker, 返回 FAILURE)
+│       │   └── GAS_BTCheckVar (end marker, 返回 FAILURE)
 │       ├── Turn On Sequence      # 分支2：开启逻辑
-│       │   ├── BTCheckVar        # toggle_action == "turn_on"
+│       │   ├── GAS_BTCheckVar        # toggle_action == "turn_on"
 │       │   ├── AbilityNodeCommitCost
 │       │   ├── AbilityNodeApplyStatus
-│       │   ├── BTSetVar (icon_when_active)
-│       │   └── BTSetVar (set toggle_action = "on")
+│       │   ├── GAS_BTSetVar (icon_when_active)
+│       │   └── GAS_BTSetVar (set toggle_action = "on")
 │       └── Keep On Sequence      # 分支3：保持状态（事件驱动）
-│           ├── BTCheckVar        # toggle_action == "on"
-│           └── BTWaitSignal      # timeout = -1（无限等待），收到输入后进入关闭分支
-└── BTWait                        # 6. 后摇等待
+│           ├── GAS_BTCheckVar        # toggle_action == "on"
+│           └── GAS_BTWaitSignal      # timeout = -1（无限等待），收到输入后进入关闭分支
+└── GAS_BTWait                        # 6. 后摇等待
 """
 
 @export_group("Quick Config")
@@ -49,7 +49,7 @@ Root Sequence
 @export var icon_when_active: Texture = null
 
 ## 缓存的默认行为树（所有实例共享，避免重复构建）
-var _cached_default_tree: BTNode = null
+var _cached_default_tree: GAS_BTNode = null
 
 ## 重写基类的工厂方法
 ## 在创建实例时自动注入 Feature 和构建行为树（不修改 Definition，避免资源污染）
@@ -77,7 +77,7 @@ func create_instance(owner: Node) -> GameplayAbilityInstance:
 
 ## 获取执行树（优先使用用户配置，否则使用缓存的默认树）
 ## 符合享元模式：所有实例共享同一个行为树
-func _get_execution_tree() -> BTNode:
+func _get_execution_tree() -> GAS_BTNode:
 	# 如果用户手动配置了，使用用户的
 	if is_instance_valid(execution_tree):
 		return execution_tree
@@ -90,10 +90,10 @@ func _get_execution_tree() -> BTNode:
 	_cached_default_tree = _build_default_behavior_tree()
 	return _cached_default_tree
 
-## 动态构建行为树结构 (构建的是 BTNode 资源图，而不是 Instance)
-func _build_default_behavior_tree() -> BTNode:
-	var sequence = BTSequence.new()
-	var nodes: Array[BTNode] = []
+## 动态构建行为树结构 (构建的是 GAS_BTNode 资源图，而不是 Instance)
+func _build_default_behavior_tree() -> GAS_BTNode:
+	var sequence = GAS_BTSequence.new()
+	var nodes: Array[GAS_BTNode] = []
 
 	# 1. 播放动画（异步，不等待）
 	if not animation_name.is_empty():
@@ -105,7 +105,7 @@ func _build_default_behavior_tree() -> BTNode:
 
 	# 2. 前摇等待
 	if pre_cast_delay > 0.0:
-		var wait = BTWait.new()
+		var wait = GAS_BTWait.new()
 		wait.duration = pre_cast_delay
 		wait.node_id = "pre_cast_delay"
 		nodes.append(wait)
@@ -117,13 +117,13 @@ func _build_default_behavior_tree() -> BTNode:
 		target_search_node.node_id = "target_search"
 		nodes.append(target_search_node)
 
-	# 4. 切换逻辑：使用 BTRepeatUntilFailure + BTSelector 实现
+	# 4. 切换逻辑：使用 GAS_BTRepeatUntilFailure + GAS_BTSelector 实现
 	# 循环执行直到关闭分支返回 FAILURE（结束技能）
-	var repeat_node = BTRepeatUntilFailure.new()
+	var repeat_node = GAS_BTRepeatUntilFailure.new()
 	repeat_node.node_id = "toggle_loop"
 	repeat_node.return_success = true  # 结束时返回 SUCCESS
 
-	var toggle_selector = BTSelector.new()
+	var toggle_selector = GAS_BTSelector.new()
 	toggle_selector.node_id = "toggle_selector"
 
 	# 收集状态ID（用于移除状态）
@@ -149,7 +149,7 @@ func _build_default_behavior_tree() -> BTNode:
 
 	# 5. 后摇等待
 	if post_cast_delay > 0.0:
-		var wait = BTWait.new()
+		var wait = GAS_BTWait.new()
 		wait.duration = post_cast_delay
 		wait.node_id = "post_cast_delay"
 		nodes.append(wait)
@@ -159,18 +159,18 @@ func _build_default_behavior_tree() -> BTNode:
 	sequence.node_id = "toggle_ability_sequence"
 	return sequence
 
-func _build_turn_off_sequence() -> BTSequence:
+func _build_turn_off_sequence() -> GAS_BTSequence:
 	# 收集状态ID（用于移除状态）
 	var status_ids: Array[StringName] = []
 	for status_data in toggle_statuses:
 		if is_instance_valid(status_data) and not status_data.status_id.is_empty():
 			status_ids.append(status_data.status_id)
 	
-	var turn_off_sequence = BTSequence.new()
+	var turn_off_sequence = GAS_BTSequence.new()
 	turn_off_sequence.node_id = "turn_off_sequence"
 
 	# 检查黑板变量，判断是否为"关闭"操作
-	var check_toggle_action_off = BTCheckVar.new()
+	var check_toggle_action_off = GAS_BTCheckVar.new()
 	check_toggle_action_off.key = "toggle_action"
 	check_toggle_action_off.value = "turn_off"
 	check_toggle_action_off.node_id = "check_toggle_action_off"
@@ -186,7 +186,7 @@ func _build_turn_off_sequence() -> BTSequence:
 
 	# 清除激活图标（恢复默认图标）
 	if is_instance_valid(icon_when_active):
-		var clear_icon_node = BTSetVar.new()
+		var clear_icon_node = GAS_BTSetVar.new()
 		clear_icon_node.variable_key = "current_icon_id"
 		clear_icon_node.value = null  # null 表示恢复默认图标
 		clear_icon_node.node_id = "clear_active_icon"
@@ -198,8 +198,8 @@ func _build_turn_off_sequence() -> BTSequence:
 		commit_cd.node_id = "commit_cooldown"
 		turn_off_sequence.children.append(commit_cd)
 
-	# 关闭完成后，返回 FAILURE 来结束 BTRepeatUntilFailure 循环
-	var end_combo_node = BTCheckVar.new()
+	# 关闭完成后，返回 FAILURE 来结束 GAS_BTRepeatUntilFailure 循环
+	var end_combo_node = GAS_BTCheckVar.new()
 	end_combo_node.key = "__toggle_end_marker__"  # 使用一个不存在的变量
 	end_combo_node.check_exist_only = true  # 只检查存在性，变量不存在会返回 FAILURE
 	end_combo_node.node_id = "end_toggle"
@@ -207,13 +207,13 @@ func _build_turn_off_sequence() -> BTSequence:
 
 	return turn_off_sequence
 
-func _build_turn_on_sequence() -> BTSequence:
+func _build_turn_on_sequence() -> GAS_BTSequence:
 	# 分支2：开启（应用状态）
-	var turn_on_sequence = BTSequence.new()
+	var turn_on_sequence = GAS_BTSequence.new()
 	turn_on_sequence.node_id = "turn_on_sequence"
 
 	# 检查黑板变量，判断是否为"开启"操作
-	var check_toggle_action_on = BTCheckVar.new()
+	var check_toggle_action_on = GAS_BTCheckVar.new()
 	check_toggle_action_on.key = "toggle_action"
 	check_toggle_action_on.value = "turn_on"
 	check_toggle_action_on.node_id = "check_toggle_action_on"
@@ -235,14 +235,14 @@ func _build_turn_on_sequence() -> BTSequence:
 
 	# 设置激活图标（如果配置了）
 	if is_instance_valid(icon_when_active):
-		var set_icon_node = BTSetVar.new()
+		var set_icon_node = GAS_BTSetVar.new()
 		set_icon_node.variable_key = "current_icon_id"
 		set_icon_node.value = "active"  # 设置图标ID为 "active"
 		set_icon_node.node_id = "set_active_icon"
 		turn_on_sequence.children.append(set_icon_node)
 
 	# 开启完成后，设置 toggle_action 为 "on"，进入保持状态
-	var set_keep_on = BTSetVar.new()
+	var set_keep_on = GAS_BTSetVar.new()
 	set_keep_on.variable_key = "toggle_action"
 	set_keep_on.value = "on"
 	set_keep_on.node_id = "set_keep_on"
@@ -250,20 +250,20 @@ func _build_turn_on_sequence() -> BTSequence:
 
 	return turn_on_sequence
 
-func _build_keep_on_sequence() -> BTSequence:
+func _build_keep_on_sequence() -> GAS_BTSequence:
 	# 保持状态分支：当 toggle_action == "on" 时，事件驱动等待关闭输入
-	var keep_on_sequence = BTSequence.new()
+	var keep_on_sequence = GAS_BTSequence.new()
 	keep_on_sequence.node_id = "keep_on_sequence"
 
 	# 检查是否为保持状态
-	var check_keep_on = BTCheckVar.new()
+	var check_keep_on = GAS_BTCheckVar.new()
 	check_keep_on.key = "toggle_action"
 	check_keep_on.value = "on"
 	check_keep_on.node_id = "check_keep_on"
 	keep_on_sequence.children.append(check_keep_on)
 
 	# 事件驱动等待：timeout < 0 表示无限等待，只在收到信号时返回 SUCCESS
-	var wait_signal = BTWaitSignal.new()
+	var wait_signal = GAS_BTWaitSignal.new()
 	wait_signal.signal_key = "event_input_received"
 	wait_signal.timeout = -1.0  # 无限等待，避免轮询
 	wait_signal.consume_signal = true

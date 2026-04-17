@@ -6,8 +6,8 @@ class_name GameplayAbilityInstance
 var _owner: Node
 var _definition: GameplayAbilityDefinition
 var _features: Dictionary[String, GameplayAbilityFeature] = {}
-var _bt_instance : BTInstance = null
-var _blackboard: BTBlackboard = null
+var _bt_instance : GAS_BTInstance = null
+var _blackboard: GAS_BTBlackboard = null
 
 # 【核心状态】技能是否正在执行（行为树是否在跑）
 var is_active: bool = false
@@ -15,11 +15,8 @@ var disabled : bool = false:
 	get:
 		return _definition.disabled
 
-var _indicator_instance: Node3D = null
-var _is_targeting: bool = false
-
 ## 技能完成信号
-signal ability_completed(ability: GameplayAbilityInstance)
+signal ability_completed(success: bool)
 ## 技能数据改变
 signal ability_data_changed(ability: GameplayAbilityInstance)
 
@@ -27,11 +24,11 @@ func _init(owner: Node, definition: GameplayAbilityDefinition) -> void:
 	_owner = owner
 	_definition = definition
 	# 初始化行为树黑板
-	_blackboard = BTBlackboard.new()
+	_blackboard = GAS_BTBlackboard.new()
 	_blackboard.value_changed.connect(_on_blackboard_value_changed)
 	_blackboard.set_var("ability_instance", self)
 	if is_instance_valid(_definition.execution_tree):
-		_bt_instance = BTInstance.new(_owner, _definition.execution_tree, _blackboard)
+		_bt_instance = GAS_BTInstance.new(_owner, _definition.execution_tree, _blackboard)
 	#else:
 		#push_warning("AbilityInstance: execution_tree is not valid!")
 
@@ -42,7 +39,7 @@ func get_definition() -> GameplayAbilityDefinition:
 func try_activate(context: Dictionary = {}) -> bool:
 	if is_active:
 		# 如果技能已激活，无论是否允许重新激活，都应该处理连击输入
-		# 触发信号，确保 BTWaitSignal 能够收到通知（用于连击系统）
+		# 触发信号，确保 GAS_BTWaitSignal 能够收到通知（用于连击系统）
 		var current_value = _blackboard.get_var("event_input_received", false)
 		if not current_value:
 			_blackboard.set_var("event_input_received", true)
@@ -105,11 +102,11 @@ func update(delta: float) -> void:
 	# 更新行为树
 	if is_active and is_instance_valid(_bt_instance):
 		var result = _bt_instance.tick(delta)
-		if result != BTNode.Status.RUNNING:
+		if result != GAS_BTNode.Status.RUNNING:
 			end_ability(result)
 
 ## 结束技能
-func end_ability(final_status: int = BTNode.Status.SUCCESS) -> void:
+func end_ability(final_status: int = GAS_BTNode.Status.SUCCESS) -> void:
 	if not is_active: return
 
 	is_active = false
@@ -118,9 +115,10 @@ func end_ability(final_status: int = BTNode.Status.SUCCESS) -> void:
 	for feature in _features.values():
 		if is_instance_valid(feature): 
 			feature.on_completed(self)
-			
+	
+	var success := final_status == GAS_BTNode.Status.SUCCESS
 	# 发出信号
-	ability_completed.emit(self)
+	ability_completed.emit(success)
 
 	# (可选) 如果树还在跑但被强制结束，重置树
 	if is_instance_valid(_bt_instance):
@@ -186,10 +184,10 @@ func handle_forgotten(ability_comp: Node,) -> void:
 		feature.on_forgotten(self, ability_comp)
 
 #region ========== 行为树管理 ==========
-func get_bt_instance() -> BTInstance:
+func get_bt_instance() -> GAS_BTInstance:
 	return _bt_instance
 
-func get_blackboard() -> BTBlackboard:
+func get_blackboard() -> GAS_BTBlackboard:
 	return _blackboard
 
 func set_blackboard_var(key: String, value: Variant) -> void:
@@ -215,52 +213,35 @@ func should_smart_cast() -> bool:
 	return _definition.smart_cast
 
 ## [API] 开始预览模式
-func start_targeting() -> void:
-	if not has_targeting(): 
+func start_targeting(extra_context: Dictionary = {}) -> void:
+	if not has_targeting():
 		return
-	_is_targeting = true
-	# 使用策略创建视觉指示器
-	_indicator_instance = _definition.preview_strategy.create_indicator(_owner)
+	_definition.preview_strategy.begin(_owner, self, extra_context)
 
 ## [API] 更新预览 (每帧调用)
-## [param] mouse_pos: 鼠标在世界空间的坐标
-func update_targeting(mouse_pos: Vector3) -> void:
-	if not _is_targeting or not is_instance_valid(_indicator_instance):
+func update_targeting(delta: float, input_context: Dictionary = {}) -> void:
+	if not is_targeting():
 		return
 
-	_definition.preview_strategy.update_indicator(
-		_indicator_instance, 
-		_owner, 
-		mouse_pos
-	)
+	_definition.preview_strategy.update(delta, input_context)
 	
 ## [API] 确认预览 -> 返回 Context 数据
-## [param] mouse_pos: 最终确定的位置
-func confirm_targeting(mouse_pos: Vector3) -> Dictionary:
+func confirm_targeting() -> Dictionary:
 	var context = {}
 	if has_targeting():
 		# 使用策略计算最终数据
-		context = _definition.preview_strategy.get_targeting_context(_owner, mouse_pos)
-	_stop_targeting_visuals()
+		context = _definition.preview_strategy.get_result_context()
 	return context
 
 ## [API] 取消预览
 func cancel_targeting() -> void:
-	# 如果是光标策略，需要恢复默认光标
 	if is_instance_valid(_definition.preview_strategy):
-		_definition.preview_strategy.cancel_targeting()
+		_definition.preview_strategy.cancel()
 		
-	_stop_targeting_visuals()
-
-## 内部清理
-func _stop_targeting_visuals() -> void:
-	_is_targeting = false
-
-	# 清理 3D 指示器（如果有）
-	if is_instance_valid(_indicator_instance):
-		_indicator_instance.queue_free()
-		_indicator_instance = null
-
+func is_targeting() -> bool:
+	if not is_instance_valid(_definition.preview_strategy):
+		return false
+	return _definition.preview_strategy.is_targeting()
 #endregion
 
 func get_current_icon() -> Texture:

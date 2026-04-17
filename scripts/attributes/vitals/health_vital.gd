@@ -23,9 +23,9 @@ signal health_restored()
 ## 生命值耗尽信号
 signal health_depleted(instigator: Node)
 ## 接受伤害时发出（在计算减免之前）
-signal damage_received(damage_info: DamageInfo)
+signal damage_received(damage_info: GameplayDamageInfo)
 ## 受到伤害时发出（在计算减免之后）
-signal damage_applied(damage_info: DamageInfo, final_damage: float)
+signal damage_applied(damage_info: GameplayDamageInfo, final_damage: float)
 
 func modify_value(amount: float, is_regen: bool = false) -> void:
 	if amount >= 0:
@@ -34,10 +34,10 @@ func modify_value(amount: float, is_regen: bool = false) -> void:
 		_modify_value(amount, is_regen)
 
 ## 核心伤害应用接口
-## [param] damage_info: DamageInfo 伤害信息
+## [param] damage_info: GameplayDamageInfo 伤害信息
 ## [param] owner_entity: Node 拥有者实体
 ## [return] float 最终伤害值（用于 Cue 系统）
-func apply_damage(damage_info: DamageInfo, owner_entity: Node) -> float:
+func apply_damage(damage_info: GameplayDamageInfo, owner_entity: Node) -> float:
 	if not is_alive: return 0.0
 	# 发出伤害接收信号（在计算减免之前）
 	damage_received.emit(damage_info)

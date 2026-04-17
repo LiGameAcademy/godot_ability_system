@@ -12,7 +12,7 @@ class_name AbilityNodeSpawnMagicField
 ## 是否挂载到目标身上（true：作为目标的子节点；false：添加到场景根节点）
 @export var attach_to_target: bool = false
 
-func _tick(instance: BTInstance, delta: float) -> int:
+func _tick(instance: GAS_BTInstance, delta: float) -> int:
 	var context : Dictionary = _get_context(instance)
 	var instigator = context.get("instigator")
 	if not is_instance_valid(instigator):
@@ -46,7 +46,7 @@ func _spawn_magic_field(
 		spawn_position: Vector3,
 		data: MagicFieldData,
 		context: Dictionary,
-		instance: BTInstance) -> void:
+		instance: GAS_BTInstance) -> void:
 	var magic_field = data.magic_field_scene.instantiate()
 
 	# 类型检查
@@ -93,7 +93,7 @@ func _spawn_magic_field(
 	data.apply_to_magic_field(magic_field_base)
 
 ## 获取生成位置
-func _get_spawn_position(instance: BTInstance, context: Dictionary) -> Vector3:
+func _get_spawn_position(instance: GAS_BTInstance, context: Dictionary) -> Vector3:
 	# 优先级1: 从黑板获取撞击位置（如果配置了 position_key）
 	if not position_key.is_empty():
 		var impact_data = _get_var(instance, position_key)

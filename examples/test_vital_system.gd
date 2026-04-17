@@ -149,7 +149,7 @@ func _test_basic_damage() -> void:
 	print("Initial Health: %.1f / %.1f" % [health_vital.current_value, health_vital.get_max_value()])
 	
 	# 创建伤害信息
-	var damage_info = DamageInfo.new(self, null, 50.0)  # 50 点基础伤害
+	var damage_info = GameplayDamageInfo.new(self, null, 50.0)  # 50 点基础伤害
 	
 	# 应用伤害
 	var final_damage = health_vital.apply_damage(damage_info, self)
@@ -170,7 +170,7 @@ func _test_strategy_switch() -> void:
 
 	# 使用默认策略
 	print("Using default strategy (SimpleDamageLogic)")
-	var damage_info1 = DamageInfo.new(self, null, 50.0)
+	var damage_info1 = GameplayDamageInfo.new(self, null, 50.0)
 	var final_damage1 = health_vital.apply_damage(damage_info1, self)
 	print("Final Damage: %.1f" % final_damage1)
 	
@@ -181,7 +181,7 @@ func _test_strategy_switch() -> void:
 		DamageCalculator.set_strategy(damage_strategy)
 		print("Switched to custom strategy")
 
-		var damage_info2 = DamageInfo.new(self, null, 50.0)
+		var damage_info2 = GameplayDamageInfo.new(self, null, 50.0)
 		var final_damage2 = health_vital.apply_damage(damage_info2, self)
 		print("Final Damage (custom): %.1f" % final_damage2)
 
@@ -197,7 +197,7 @@ func _test_defense_impact() -> void:
 	print("Initial Defense: %.1f" % initial_defense)
 
 	# 测试 1：低防御力
-	var damage_info1 = DamageInfo.new(self, null, 50.0)
+	var damage_info1 = GameplayDamageInfo.new(self, null, 50.0)
 	var final_damage1 = health_vital.apply_damage(damage_info1, self)
 	print("Damage with Defense %.1f: %.1f" % [initial_defense, final_damage1])
 	await get_tree().process_frame
@@ -208,7 +208,7 @@ func _test_defense_impact() -> void:
 	print("New Defense: %.1f" % vital_component.get_value(&"defense"))
 	
 	# 测试 2：高防御力
-	var damage_info2 = DamageInfo.new(self, null, 50.0)
+	var damage_info2 = GameplayDamageInfo.new(self, null, 50.0)
 	var final_damage2 = health_vital.apply_damage(damage_info2, self)
 	print("Damage with Defense %.1f: %.1f" % [vital_component.get_value(&"defense"), final_damage2])
 

@@ -12,7 +12,7 @@ enum CastTargetType{
 @export var play_animation_method: StringName = "play_animation"
 
 ## [生命周期] 节点激活时调用（只跑一次）
-func _enter(instance: BTInstance) -> void:
+func _enter(instance: GAS_BTInstance) -> void:
 	# 1. 获取上下文和施法者
 	var context = _get_context(instance)
 	var final_targets : Array[Node] = []
@@ -34,5 +34,5 @@ func _enter(instance: BTInstance) -> void:
 
 		target.call(play_animation_method, animation_name, animation_speed)
 
-func _tick(instance: BTInstance, delta: float) -> int:
+func _tick(instance: GAS_BTInstance, delta: float) -> int:
 	return Status.SUCCESS

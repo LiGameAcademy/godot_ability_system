@@ -7,6 +7,7 @@ class_name GameplayStatusInstance
 var status_data: GameplayStatusData
 var owner_component: GameplayStatusComponent  ## 状态组件
 var instigator: Node  ## 施加者
+## 层数
 var stacks: int = 1
 
 # 计时管理（由组件统一管理，这里只存储剩余时间）
@@ -131,19 +132,27 @@ func add_stack(amount: int = 1, is_refresh_duration: bool = true) -> void:
 
 ## 处理事件（用于事件监听型效果）
 ## 此方法用于处理通过统一事件系统触发的事件
-func handle_event(event_id: StringName, context: Dictionary) -> void:
+## [param] event_id: StringName 事件ID
+## [param] context: Dictionary 事件上下文
+## [return] bool 是否应该移除状态
+func handle_event(event_id: StringName, context: Dictionary) -> bool:
 	# 检查状态是否应该响应这个事件
 	if not status_data.can_trigger_on_event(event_id):
-		return
-
-	# 调用持续时间策略的handle_event方法
-	if is_instance_valid(_duration_policy):
-		_duration_policy.handle_event(self, event_id, context)
+		return false
 
 	# 让所有 Feature 处理事件
 	for feature in status_data.features:
 		if is_instance_valid(feature):
 			feature.handle_event(self, event_id, context)
+
+	# 调用持续时间策略的handle_event方法
+	if is_instance_valid(_duration_policy):
+		return _duration_policy.handle_event(self, event_id, context)
+	
+	if remaining_duration <= 0.0:
+		return true
+
+	return false
 
 ## 刷新持续时间
 func refresh_duration() -> void:

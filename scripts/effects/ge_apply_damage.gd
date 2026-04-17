@@ -30,8 +30,8 @@ func _apply(target: Node, instigator: Node, context: Dictionary) -> void:
 	# 2. 计算最终伤害
 	var final_damage = DamageCalculator.calculate_final_damage(target, instigator, context, damage_strategy)
 	
-	# 3. 创建 DamageInfo
-	var damage_info = DamageInfo.new(instigator, context.get("source_node", null), final_damage * stacks)
+	# 3. 创建 GameplayDamageInfo
+	var damage_info = GameplayDamageInfo.new(instigator, context.get("source_node", null), final_damage * stacks)
 	damage_info.final_damage = damage_info.base_damage
 	
 	# 4. 应用伤害（由 HealthVital 负责）

@@ -11,7 +11,7 @@ func set_strategy(strategy: DamageLogicStrategy) -> void:
 	_strategy = strategy
 
 ## 计算最终伤害
-## [param] damage_info: DamageInfo 伤害信息
+## [param] damage_info: GameplayDamageInfo 伤害信息
 ## [param] target_comp: GameplayAttributeComponent 目标的属性组件
 ## [return] float 最终伤害值
 func calculate_final_damage(target: Node, instigator: Node, context: Dictionary, strategy: DamageLogicStrategy = null) -> float:

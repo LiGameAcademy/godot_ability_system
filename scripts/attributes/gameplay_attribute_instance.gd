@@ -18,7 +18,8 @@ var _dirty : bool = true									## 脏标记
 ## 索引：source_id -> Array[GameplayAttributeModifier]（性能优化，用于批量移除）
 var _modifiers_by_source_id: Dictionary[StringName, Array] = {}
 
-signal value_changed(old_val: float, new_value: float)	## 当最终值实际改变时发出
+signal base_value_changed(old_val: float, new_value: float)	## 当基础值实际改变时发出
+signal value_changed(old_val: float, new_value: float)		## 当最终值实际改变时发出
 
 func _init(attr_res: GameplayAttribute = null, init_val: float = 0.0, p_scalable_value: ScalableValue = null) -> void:
 	attribute_def = attr_res
@@ -98,6 +99,12 @@ func remove_modifiers_by_source(source_id: StringName) -> void:
 	_modifiers_by_source_id.erase(source_id)
 	_on_data_changed()
 
+func get_modifers() -> Array[GameplayAttributeModifier]:
+	var modifiers : Array[GameplayAttributeModifier]
+	for mods in _modifiers.values():
+		modifiers.append_array(mods)
+	return modifiers
+
 ## 重新计算最终值（当前版本：只处理基础值和范围限制）
 func _recalculate_value() -> void:
 	var final := base_value
@@ -137,6 +144,7 @@ func _set_base_value(val: float) -> void:
 	
 	base_value =val
 	_on_data_changed()
+	base_value_changed.emit(base_value, val)
 
 ## 设置等级（会重新计算 base_value）
 func _set_current_level(level: int) -> void:

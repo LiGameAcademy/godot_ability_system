@@ -14,7 +14,7 @@ class_name AbilityNodeSpawnProjectile
 ## 枪口挂点名（用于定位发射点）
 @export var muzzle_attachment_point: StringName = &"body"
 
-func _tick(instance: BTInstance, delta: float) -> int:
+func _tick(instance: GAS_BTInstance, delta: float) -> int:
 	var context : Dictionary = _get_context(instance)
 	if not context is Dictionary:
 		context = {}

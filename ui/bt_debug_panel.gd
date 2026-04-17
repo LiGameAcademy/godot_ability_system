@@ -131,7 +131,7 @@ func _update_tree_view() -> void:
 	_build_tree_item(_tree_root_item, bt_instance.tree_root, bt_instance)
 
 ## 递归构建树项
-func _build_tree_item(parent_item: TreeItem, node: BTNode, instance: BTInstance) -> void:
+func _build_tree_item(parent_item: TreeItem, node: GAS_BTNode, instance: GAS_BTInstance) -> void:
 	if not is_instance_valid(node):
 		return
 
@@ -151,17 +151,17 @@ func _build_tree_item(parent_item: TreeItem, node: BTNode, instance: BTInstance)
 	item.set_custom_color(0, status_color)
 
 	# 如果是组合节点，递归处理子节点
-	if node is BTComposite:
-		var composite = node as BTComposite
+	if node is GAS_BTComposite:
+		var composite = node as GAS_BTComposite
 		for child in composite.children:
 			_build_tree_item(item, child, instance)
-	elif node is BTDecorator:
-		var decorator = node as BTDecorator
+	elif node is GAS_BTDecorator:
+		var decorator = node as GAS_BTDecorator
 		if is_instance_valid(decorator.child):
 			_build_tree_item(item, decorator.child, instance)
 
 ## 获取节点名称
-func _get_node_name(node: BTNode) -> String:
+func _get_node_name(node: GAS_BTNode) -> String:
 	if not is_instance_valid(node):
 		return "null"
 	
@@ -288,13 +288,13 @@ func _update_execution_history_view() -> void:
 		var status_text = ""
 		var status_color = Color.WHITE
 		match status:
-			BTNode.Status.SUCCESS:
+			GAS_BTNode.Status.SUCCESS:
 				status_text = "SUCCESS"
 				status_color = Color.GREEN
-			BTNode.Status.FAILURE:
+			GAS_BTNode.Status.FAILURE:
 				status_text = "FAILURE"
 				status_color = Color.RED
-			BTNode.Status.RUNNING:
+			GAS_BTNode.Status.RUNNING:
 				status_text = "RUNNING"
 				status_color = Color.CYAN
 			_:

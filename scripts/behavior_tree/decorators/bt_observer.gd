@@ -1,5 +1,5 @@
-extends BTDecorator
-class_name BTObserver
+extends GAS_BTDecorator
+class_name GAS_BTObserver
 
 ## 中断类型
 enum AbortType {
@@ -9,17 +9,17 @@ enum AbortType {
 }
 @export var abort_type: AbortType = AbortType.NONE
 
-func _enter(instance: BTInstance):
+func _enter(instance: GAS_BTInstance):
 	if abort_type != AbortType.NONE:
 		# 告诉 Instance：我要监听黑板变化
 		instance.register_observer(self)
 
-func _exit(instance: BTInstance):
+func _exit(instance: GAS_BTInstance):
 	if abort_type != AbortType.NONE:
 		instance.unregister_observer(self)
 
 ## [核心] 重写装饰器的执行逻辑：先检查条件，再执行子节点
-func _tick_decorator(instance: BTInstance, delta: float) -> int:
+func _tick_decorator(instance: GAS_BTInstance, delta: float) -> int:
 	if not is_instance_valid(child):
 		return Status.FAILURE
 
@@ -38,15 +38,15 @@ func is_relevant(key: String) -> bool:
 	return false
 
 ## [虚函数] 检查条件是否满足
-func check_condition(instance: BTInstance) -> bool:
+func check_condition(instance: GAS_BTInstance) -> bool:
 	return true
 
 ## [回调] 当黑板数据改变时，由 Instance 调用此函数
-func on_blackboard_change(instance: BTInstance, key: String):
+func on_blackboard_change(instance: GAS_BTInstance, key: String):
 	# 子类判断 key 是否是自己关心的变量
 	if not is_relevant(key): return 
 	var is_success = check_condition(instance)
-	var status = BTNode.Status.SUCCESS if is_success else BTNode.Status.FAILURE
+	var status = GAS_BTNode.Status.SUCCESS if is_success else GAS_BTNode.Status.FAILURE
 
 	# 调用 Instance 的中断逻辑
 	instance.evaluate_interruption(self, status)

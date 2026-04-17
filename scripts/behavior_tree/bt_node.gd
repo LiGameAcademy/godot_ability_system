@@ -1,6 +1,6 @@
 @abstract
 extends Resource
-class_name BTNode
+class_name GAS_BTNode
 
 enum Status { 
 	SUCCESS,   # 成功：节点执行完成且成功
@@ -11,7 +11,7 @@ enum Status {
 @export var node_id: StringName = ""
 
 ## 增加 delta 参数，这对计时类节点至关重要
-func tick(instance: BTInstance, delta: float) -> int:
+func tick(instance: GAS_BTInstance, delta: float) -> int:
 	# 1. 检查是否是"首次进入"
 	var was_running = instance.has_node_status(self)
 	var previous_status = instance.get_node_status(self, -1)
@@ -43,7 +43,7 @@ func tick(instance: BTInstance, delta: float) -> int:
 	return result
 
 ## 强制清理状态 (用于中断)
-func reset(instance: BTInstance) -> void:
+func reset(instance: GAS_BTInstance) -> void:
 	# 如果当前被标记为正在运行，则触发退出逻辑
 	if instance.has_node_status(self):
 		_exit(instance)
@@ -52,38 +52,38 @@ func reset(instance: BTInstance) -> void:
 
 ## [虚函数] 业务逻辑入口
 ## 子类不要重写 tick()，而是重写 _tick()
-@abstract func _tick(instance: BTInstance, delta: float) -> int
+@abstract func _tick(instance: GAS_BTInstance, delta: float) -> int
 
 ## [虚函数] 节点激活时调用 (只调用一次)
 ## 用于：注册观察者、初始化临时变量、播放开始动画
-func _enter(instance: BTInstance) -> void: pass
+func _enter(instance: GAS_BTInstance) -> void: pass
 
 ## [虚函数] 节点结束时调用 (成功或失败都会调用)
 ## 用于：注销观察者、清理临时变量、停止动画
-func _exit(instance: BTInstance) -> void: pass
+func _exit(instance: GAS_BTInstance) -> void: pass
 
 ## [语法糖] 获取我的私有变量
-func _get_storage(instance: BTInstance, default: Variant = null) -> Variant:
+func _get_storage(instance: GAS_BTInstance, default: Variant = null) -> Variant:
 	return instance.blackboard.get_node_data(self, default)
 
 ## [语法糖] 设置我的私有变量
-func _set_storage(instance: BTInstance, value: Variant) -> void:
+func _set_storage(instance: GAS_BTInstance, value: Variant) -> void:
 	instance.blackboard.set_node_data(self, value)
 
 ## [语法糖] 清理
-func _clear_storage(instance: BTInstance) -> void:
+func _clear_storage(instance: GAS_BTInstance) -> void:
 	instance.blackboard.erase_node_data(self)
 
-func _get_var(instance: BTInstance, key: String, default: Variant = null) -> Variant:
+func _get_var(instance: GAS_BTInstance, key: String, default: Variant = null) -> Variant:
 	return instance.blackboard.get_var(key, default)
 
-func _set_var(instance: BTInstance, key: String, value: Variant) -> void:
+func _set_var(instance: GAS_BTInstance, key: String, value: Variant) -> void:
 	instance.blackboard.set_var(key, value)
 
-func _has_var(instance: BTInstance, key: String) -> bool:
+func _has_var(instance: GAS_BTInstance, key: String) -> bool:
 	return instance.blackboard.has_var(key)
 
-func _clear_var(instance: BTInstance, key: String) -> void:
+func _clear_var(instance: GAS_BTInstance, key: String) -> void:
 	instance.blackboard.erase_var(key)
 
 func _get_node_name() -> StringName:

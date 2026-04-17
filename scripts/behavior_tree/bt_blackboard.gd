@@ -1,15 +1,18 @@
 extends RefCounted
-class_name BTBlackboard
+class_name GAS_BTBlackboard
 
 # 只有这部分数据的变化会触发信号 / 中断逻辑
 var _data: Dictionary = {}
-# 这部分数据变化 **静默处理**，不发信号，专门给 BTNode 存中间状态用
-# Key 是 BTNode 引用 (Object)，不是 String
+# 这部分数据变化 **静默处理**，不发信号，专门给 GAS_BTNode 存中间状态用
+# Key 是 GAS_BTNode 引用 (Object)，不是 String
 var _node_memory: Dictionary = {}
 
 ## 信号：当某个 Key 的值改变时发出
 signal value_changed(key: String, value: Variant)
 signal value_cleared()
+
+func _init(data_defaults: Dictionary = {}) -> void:
+	_data = data_defaults.duplicate()
 
 func set_var(key: String, value: Variant) -> void:
 	var old_value = _data.get(key)
@@ -35,13 +38,13 @@ func clear() -> void:
 func get_all_vars() -> Dictionary:
 	return _data.duplicate()
 
-func set_node_data(node: BTNode, value: Variant) -> void:
+func set_node_data(node: GAS_BTNode, value: Variant) -> void:
 	_node_memory[node] = value
 
-func get_node_data(node: BTNode, default: Variant = null) -> Variant:
+func get_node_data(node: GAS_BTNode, default: Variant = null) -> Variant:
 	return _node_memory.get(node, default)
 
-func erase_node_data(node: BTNode) -> void:
+func erase_node_data(node: GAS_BTNode) -> void:
 	_node_memory.erase(node)
 
 ## [调试] 获取所有节点数据（用于调试面板）

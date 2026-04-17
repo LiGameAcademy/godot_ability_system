@@ -3,7 +3,7 @@ class_name AbilityNodeCommitCooldown
 
 @export var cooldown_feature_name: String = "CooldownFeature"
 
-func _tick(instance: BTInstance, delta: float) -> int:
+func _tick(instance: GAS_BTInstance, delta: float) -> int:
 	var ability = _get_var(instance, "ability_instance")
 	if not is_instance_valid(ability):
 		push_error("AbilityNodeCommitCooldown: ability is not valid!")

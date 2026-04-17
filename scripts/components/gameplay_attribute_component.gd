@@ -14,6 +14,8 @@ var current_level: int = 1 : set = _set_current_level
 
 # 信号：当属性值发生变化时发出
 signal attribute_value_changed(id: StringName, new_val: float)
+## 属性基础值改变时发出
+signal attribute_base_value_changed(id: StringName, old_val: float, new_val: float)
 ## 等级变化信号
 signal level_changed(old_level: int, new_level: int)
 
@@ -80,6 +82,18 @@ func remove_modifier(mod: GameplayAttributeModifier) -> void:
 	if _attributes.has(mod.attribute_id):
 		_attributes[mod.attribute_id].remove_modifier(mod)
 
+## 获取属性修改器
+## [param] attribute_id: StringName 属性ID
+## [return] Array[Resource] 修改器数组
+func get_modifiers(attribute_id: StringName) -> Array[Resource]:
+	if not _attributes.has(attribute_id):
+		return []
+	var attr : GameplayAttributeInstance = _attributes[attribute_id]
+	var modifiers : Array[Resource]
+	for mod in attr.get_modifiers():
+		modifiers.append(mod)
+	return modifiers
+
 ## 根据 source_id 批量移除属性修改器
 ## [param] source_id: StringName 来源ID
 func remove_modifiers_by_source(source_id: StringName) -> void:
@@ -115,6 +129,10 @@ func _register_instance(id: StringName, instance: GameplayAttributeInstance) -> 
 		func(old, new) -> void: 
 			attribute_value_changed.emit(id, new)
 			_handle_dependency(id, new)
+	)
+	instance.base_value_changed.connect(
+		func(old_val: float, new_val: float) -> void:
+			attribute_base_value_changed.emit(id, old_val, new_val)
 	)
 	return true
 

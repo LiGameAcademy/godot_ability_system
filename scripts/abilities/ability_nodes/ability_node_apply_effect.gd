@@ -10,7 +10,7 @@ class_name AbilityNodeApplyEffect
 ## 如果没有目标，是否使用 instigator 作为回退（用于自身效果）
 @export var use_instigator_as_fallback: bool = false
 
-func _tick(instance: BTInstance, delta: float) -> int:
+func _tick(instance: GAS_BTInstance, delta: float) -> int:
 	# 1. 获取上下文和施法者
 	var context = _get_context(instance)
 	var instigator = context.get("instigator")

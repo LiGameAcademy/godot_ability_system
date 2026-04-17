@@ -1,5 +1,5 @@
-extends BTAction
-class_name BTModifyInt
+extends GAS_BTAction
+class_name GAS_BTModifyInt
 
 enum Operation { 
 	SET,                ## 设置为指定值
@@ -11,7 +11,7 @@ enum Operation {
 @export var value: int = 1
 @export var operation: Operation = Operation.ADD
 
-func _tick(instance: BTInstance, delta: float) -> int:
+func _tick(instance: GAS_BTInstance, delta: float) -> int:
 	var current_val: int = _get_var(instance, variable_key, 0)
 	match operation:
 		Operation.SET: current_val = value

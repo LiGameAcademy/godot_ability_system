@@ -6,7 +6,7 @@ class_name GameplayAbilityDefinition
 @export var ability_id: StringName                  	## 技能的唯一ID
 @export var ability_name: String                    	## 技能名称
 @export_multiline var description: String           	## 技能描述
-@export var icon: Texture			                    ## 技能图标
+@export var icon: Texture							## 技能图标
 @export var disabled: bool = false                  	## 技能是否禁用
 @export var tags: Array[StringName] = []            	## 技能标签
 
@@ -25,7 +25,7 @@ class_name GameplayAbilityDefinition
 
 @export_group("Behavior Logic")
 ## 核心行为树 (描述技能的具体执行流程)
-@export var execution_tree: BTNode
+@export var execution_tree: GAS_BTNode
 
 ## 黑板默认数据 (配置参数)
 ## 这里填写的 Key-Value 会在技能实例化时自动注入到黑板中

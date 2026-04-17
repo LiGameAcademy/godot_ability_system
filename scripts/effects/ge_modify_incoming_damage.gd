@@ -11,7 +11,7 @@ class_name GE_ModifyIncomingDamage
 @export_range(0.0, 10.0, 0.01) var damage_multiplier: float = 0.5
 
 func _apply(target: Node, _instigator: Node, context: Dictionary) -> void:
-	var damage_info: DamageInfo = context.get("damage_info")
+	var damage_info: GameplayDamageInfo = context.get("damage_info")
 	if not is_instance_valid(damage_info):
 		return
 
@@ -24,7 +24,7 @@ func _apply(target: Node, _instigator: Node, context: Dictionary) -> void:
 		final_multiplier = pow(damage_multiplier, stacks)
 		# 或使用线性公式：final_multiplier = damage_multiplier * (1.0 - 0.1 * (stacks - 1))
 	
-	# DamageInfo 是引用类型，直接修改其 final_damage 即可影响后续计算
+	# GameplayDamageInfo 是引用类型，直接修改其 final_damage 即可影响后续计算
 	damage_info.final_damage *= final_multiplier
 
 func _get_description() -> String:

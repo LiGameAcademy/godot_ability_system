@@ -6,7 +6,7 @@ class_name AbilityNodeApplyCost
 ##
 ## 用途：
 ## - 周期性检查并消耗资源（如献祭技能每秒检查并消耗1点生命值）
-## - 与 BTRepeatPeriodic 配合使用
+## - 与 GAS_BTRepeatPeriodic 配合使用
 ##
 ## 注意：
 ## - 先检查是否可以支付消耗，如果可以则支付
@@ -25,7 +25,7 @@ class_name AbilityNodeApplyCost
 ## Vital 组件名称（用于查找组件）
 @export var vital_comp_name: StringName = &"GameplayVitalAttributeComponent"
 
-func _tick(instance: BTInstance, delta: float) -> int:
+func _tick(instance: GAS_BTInstance, delta: float) -> int:
 	if not _validate_context(instance, "AbilityNodeApplyCost"):
 		return Status.FAILURE
 

@@ -4,7 +4,7 @@ class_name AbilityNodeApplyStatus
 ## [配置] 要应用的状态列表(value是层数）
 @export var statuses : Dictionary[GameplayStatusData, int] = {}
 
-func _tick(instance: BTInstance, delta: float) -> int:
+func _tick(instance: GAS_BTInstance, delta: float) -> int:
 	# 1. 获取上下文和施法者
 	var context = _get_context(instance)
 	var instigator = context.get("instigator")

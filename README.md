@@ -279,6 +279,9 @@ ability_component.try_activate_ability(&"fireball")
 
 **老李（玩物不丧志的老李）**
 
+<a href="https://www.bilibili.com/cheese/play/ss791568227" target="_blank">
+  <img src="https://archive.biliimg.com/bfs/archive/c16382c190d25495f8942cb10ce6582ed5b88c0e.jpg" alt="Bilibili Course">
+</a>
 - 课程教程：[godot4架构实战：即时战斗与技能系统篇](https://www.bilibili.com/cheese/play/ss791568227)
 - 知识星球：[老李游戏学院](https://wx.zsxq.com/group/28885154818841)
 

@@ -1,5 +1,5 @@
 extends RefCounted
-class_name DamageInfo
+class_name GameplayDamageInfo
 
 ## 伤害信息数据包
 ## 包含伤害的所有相关信息

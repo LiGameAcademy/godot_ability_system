@@ -15,7 +15,7 @@ class_name AbilityNodeFaceTarget
 ## 转向速度（弧度/秒，仅在非瞬间模式下有效）
 @export var rotation_speed: float = 12.0
 
-func _tick(instance: BTInstance, delta: float) -> int:
+func _tick(instance: GAS_BTInstance, delta: float) -> int:
 	var agent = instance.agent
 	if not is_instance_valid(agent) or not agent is Node3D:
 		push_warning("AbilityNodeFaceTarget: Agent is not a valid Node3D")
@@ -68,7 +68,7 @@ func _tick(instance: BTInstance, delta: float) -> int:
 			return Status.SUCCESS
 
 ## 获取目标位置（优先级：Context.custom_data.target_position > Context.hit_position > 黑板 target_position > input_target）
-func _get_target_position(instance: BTInstance) -> Vector3:
+func _get_target_position(instance: GAS_BTInstance) -> Vector3:
 	# 优先级1: 从 Context 获取 target_position（player.gd 设置的鼠标位置）
 	var context = _get_context(instance)
 	if context is Dictionary:

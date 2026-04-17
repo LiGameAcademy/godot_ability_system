@@ -3,7 +3,7 @@ class_name AbilityNodeRemoveStatus
 
 @export var status_ids: Array[StringName] = []
 
-func _tick(instance: BTInstance, delta: float) -> int:
+func _tick(instance: GAS_BTInstance, delta: float) -> int:
 	# 获取目标列表（使用 instigator 作为回退）
 	var target_list = _get_target_list(instance, true)
 	if target_list.is_empty():

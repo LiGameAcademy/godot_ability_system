@@ -13,7 +13,7 @@ class_name AbilityNodeTargetSearch
 ## False: 返回 SUCCESS (允许空挥)
 @export var fail_if_empty: bool = false
 
-func _tick(instance: BTInstance, delta: float) -> int:
+func _tick(instance: GAS_BTInstance, delta: float) -> int:
 	# 1. 安全检查
 	if not is_instance_valid(strategy):
 		push_warning("AbilityNodeTargetSearch: Missing strategy.")

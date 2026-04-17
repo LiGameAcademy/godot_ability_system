@@ -1,7 +1,10 @@
-extends BTDecorator
-class_name BTInverter
+extends GAS_BTDecorator
+class_name GAS_BTInverter
 
-func _tick_decorator(instance: BTInstance, delta: float) -> int:
+## 反转节点
+## 将子节点的成功或失败状态反转
+
+func _tick_decorator(instance: GAS_BTInstance, delta: float) -> int:
 	var result = child.tick(instance, delta)
 	if result == Status.SUCCESS:
 		return Status.FAILURE

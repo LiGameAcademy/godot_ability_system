@@ -1,5 +1,5 @@
-extends BTDecorator
-class_name BTRepeatPeriodic
+extends GAS_BTDecorator
+class_name GAS_BTRepeatPeriodic
 
 @export_group("Periodic Settings")
 ## 周期时间（秒）
@@ -11,7 +11,7 @@ class_name BTRepeatPeriodic
 ## 当子节点返回 FAILURE 时，此节点返回什么状态
 @export var return_success_on_failure: bool = true
 
-func _tick_decorator(instance: BTInstance, delta: float) -> int:
+func _tick_decorator(instance: GAS_BTInstance, delta: float) -> int:
 	if not is_instance_valid(child):
 		return Status.FAILURE
 	
@@ -67,7 +67,7 @@ func _tick_decorator(instance: BTInstance, delta: float) -> int:
 				return Status.FAILURE
 	return Status.RUNNING
 
-func _enter(instance: BTInstance) -> void:
+func _enter(instance: GAS_BTInstance) -> void:
 	# 初始化运行时状态
 	var state = {
 		"elapsed": 0.0,
@@ -76,12 +76,12 @@ func _enter(instance: BTInstance) -> void:
 	}
 	_set_state(instance, state)
 
-func _exit(instance: BTInstance) -> void:
+func _exit(instance: GAS_BTInstance) -> void:
 	# 清理运行时状态（由父类自动清理，这里可以显式清理）
 	_clear_storage(instance)
 
-## 获取运行时状态（状态存储在 BTInstance 中）
-func _get_state(instance: BTInstance) -> Dictionary:
+## 获取运行时状态（状态存储在 GAS_BTInstance 中）
+func _get_state(instance: GAS_BTInstance) -> Dictionary:
 	return _get_storage(instance, {
 		"elapsed": 0.0,
 		"is_waiting_for_period": false,
@@ -89,13 +89,13 @@ func _get_state(instance: BTInstance) -> Dictionary:
 	})
 
 ## 设置运行时状态
-func _set_state(instance: BTInstance, state: Dictionary) -> void:
+func _set_state(instance: GAS_BTInstance, state: Dictionary) -> void:
 	_set_storage(instance, state)
 
 ## 获取实际的周期时间（优先从黑板读取）
-## [param] instance: BTInstance 行为树实例
+## [param] instance: GAS_BTInstance 行为树实例
 ## [return] float 周期时间（秒）
-func _get_actual_period(instance: BTInstance) -> float:
+func _get_actual_period(instance: GAS_BTInstance) -> float:
 	# 如果设置了 period_key，优先从黑板读取
 	if not period_key.is_empty():
 		var blackboard_period = instance.blackboard.get_var(period_key)

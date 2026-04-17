@@ -95,41 +95,25 @@ status_data.max_stacks = 1
 
 ## 持续时间策略
 
-### 1. 自然时间（Natural Time）
+### 1. 自然时间（Natural Time）— 当前已实现
 
-使用游戏的自然时间（不受游戏暂停影响）。
+使用游戏的自然时间（按秒流逝，常用于即时制或实时战斗）。
 
 ```gdscript
 var policy = DurationNaturalTime.new()
 status_data.duration_policy = policy
 ```
 
-### 2. 游戏时间（Game Time）
+**说明：** 当前插件仅实现此策略。`GameplayStatusData` 默认即使用 `DurationNaturalTime`，若未显式设置 `duration_policy`，会使用自然时间。
 
-使用游戏时间（受游戏暂停影响）。
+### 2. 其他策略（计划中）
 
-```gdscript
-var policy = DurationGameTime.new()
-status_data.duration_policy = policy
-```
+以下策略在文档中预留说明，**当前版本尚未实现**，计划在后续版本中提供：
 
-### 3. 手动更新（Manual Update）
+- **游戏时间（DurationGameTime）**：使用游戏时间（受游戏暂停影响）。
+- **手动更新（DurationManualUpdate）**：适用于回合制，由外部在每回合结束时调用更新接口（如 `manual_update(1.0)`）减少剩余回合数。
 
-适用于回合制游戏，基于事件手动更新状态持续时间。
-
-```gdscript
-var policy = DurationManualUpdate.new()
-status_data.duration_policy = policy
-
-# 在回合制游戏中，手动触发更新
-# 例如：每回合结束时调用
-status_instance.manual_update(1.0)  # 减少1个回合
-```
-
-**使用场景：**
-- 回合制游戏（每回合减少持续时间）
-- 基于事件的游戏（如卡牌游戏，基于特定事件减少持续时间）
-- 需要精确控制更新时机的场景
+若需在回合制中使用“按回合持续”的状态，可继承 `StatusDurationPolicy` 自行实现基于回合的持续时间策略，或在业务层每回合结束时遍历状态并手动减少剩余时间后移除到期状态。
 
 ## 创建状态
 

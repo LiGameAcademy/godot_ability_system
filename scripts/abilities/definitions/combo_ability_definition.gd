@@ -10,28 +10,28 @@ class_name ComboAbilityDefinition
 
 ## 缓存的默认行为树（所有实例共享，避免重复构建）
 ## 只在第一次创建实例时构建，之后所有实例共享
-var _cached_combo_tree: BTNode = null
+var _cached_combo_tree: GAS_BTNode = null
 
 """
 Root Sequence
 ├── AbilityNodeCommitCost          # 1. 应用消耗（连击开始时）
-├── BTRepeatUntilFailure            # 2. 循环执行连击段，直到超时失败
-│   └── BTSwitch                    # 3. 根据 combo_index 选择连击段
+├── GAS_BTRepeatUntilFailure            # 2. 循环执行连击段，直到超时失败
+│   └── GAS_BTSwitch                    # 3. 根据 combo_index 选择连击段
 │       ├── Combo Step 1 (Sequence)
 │       │   ├── Step 1 Execution Tree  # 执行第一段攻击
-│       │   ├── BTWaitSignal            # 等待连击输入（窗口期）
+│       │   ├── GAS_BTWaitSignal            # 等待连击输入（窗口期）
 │       │   ├── AbilityNodeAdvanceCombo # 推进到下一段
-│       │   └── BTSetVar                # 设置下一段图标
+│       │   └── GAS_BTSetVar                # 设置下一段图标
 │       ├── Combo Step 2 (Sequence)
 │       │   ├── Step 2 Execution Tree
-│       │   ├── BTWaitSignal
+│       │   ├── GAS_BTWaitSignal
 │       │   ├── AbilityNodeAdvanceCombo
-│       │   └── BTSetVar
+│       │   └── GAS_BTSetVar
 │       └── Combo Step 3 (Sequence)
 │           ├── Step 3 Execution Tree
-│           ├── BTWaitSignal
+│           ├── GAS_BTWaitSignal
 │           ├── AbilityNodeAdvanceCombo  # 终结技，重置索引
-│           └── BTSetVar
+│           └── GAS_BTSetVar
 └── AbilityNodeCommitCooldown      # 4. 应用冷却（连击结束后）
 """
 
@@ -64,8 +64,8 @@ func create_instance(owner: Node) -> GameplayAbilityInstance:
 
 ## 获取执行树（优先使用用户配置，否则使用缓存的默认树）
 ## 符合享元模式：所有实例共享同一个行为树
-## [return] BTNode 执行树
-func _get_execution_tree() -> BTNode:
+## [return] GAS_BTNode 执行树
+func _get_execution_tree() -> GAS_BTNode:
 	# 如果用户手动配置了，使用用户的
 	if is_instance_valid(execution_tree):
 		return execution_tree
@@ -161,10 +161,10 @@ func _validate_configuration() -> void:
 		if not is_instance_valid(step):
 			push_warning("ComboAbilityDefinition [%s]: combo_steps[%d] 无效" % [ability_id, i])
 
-func _build_combo_tree() -> BTNode:
+func _build_combo_tree() -> GAS_BTNode:
 	# --- 最外层 Sequence ---
 	# 结构: [Cost -> RepeatUntilFailure(Switch) -> Cooldown]
-	var root_sequence = BTSequence.new()
+	var root_sequence = GAS_BTSequence.new()
 
 	# 1. 【头部】应用消耗 (无论第几段，只要触发技能就检查消耗)
 	# 如果你想只在第一段消耗，可以在 Switch 内部的第一段里加 Cost
@@ -173,28 +173,28 @@ func _build_combo_tree() -> BTNode:
 	root_sequence.children.append(cost_node)
 
 	# 2. 【中部】RepeatUntilFailure 包裹 Switch 选择器
-	# 逻辑：循环执行连击段，直到某一段超时失败（BTWaitSignal 返回 FAILURE）
-	var repeat_node = BTRepeatUntilFailure.new()
+	# 逻辑：循环执行连击段，直到某一段超时失败（GAS_BTWaitSignal 返回 FAILURE）
+	var repeat_node = GAS_BTRepeatUntilFailure.new()
 	repeat_node.node_id = "combo_loop"
 
-	var switch_node = BTSwitch.new()
+	var switch_node = GAS_BTSwitch.new()
 	switch_node.variable_key = "combo_index"
 	switch_node.node_id = "combo_switch"
-	# 注意：BTSwitch 只负责根据索引选择子节点，不处理超时逻辑
-	# 超时由连击段内部的 BTWaitSignal 返回 FAILURE 来处理
-	var switch_children: Array[BTNode] = []
+	# 注意：GAS_BTSwitch 只负责根据索引选择子节点，不处理超时逻辑
+	# 超时由连击段内部的 GAS_BTWaitSignal 返回 FAILURE 来处理
+	var switch_children: Array[GAS_BTNode] = []
 	
 	for i in range(combo_steps.size()):
 		var step_def = combo_steps[i]
 		var is_last_step = (i == combo_steps.size() - 1)
 		# 构建子树包装器
-		var wrapper = BTSequence.new()
+		var wrapper = GAS_BTSequence.new()
 		wrapper.node_id = "combo_step_%d" % (i + 1)
 		
 		# A. 【关键】在执行段之前设置当前段的图标
 		# 当 combo_index = i 时，执行第 i 段，应该显示第 i+1 段的图标（下一段）
 		# 这样在执行当前段时，UI 已经显示下一段的图标，提示玩家可以继续连击
-		var icon_node = BTSetVar.new()
+		var icon_node = GAS_BTSetVar.new()
 		icon_node.variable_key = "current_icon_id"
 		if is_last_step:
 			# 如果是终结技，执行完后会直接结束连击，不需要设置下一段图标
@@ -225,18 +225,18 @@ func _build_combo_tree() -> BTNode:
 		# C. 【关键】对于最后一段，执行完后直接结束，不等待输入
 		# 对于中间段，等待连击输入，如果收到输入则继续下一段，如果超时则结束连击
 		if not is_last_step:
-			# 添加 BTWaitSignal 等待连击输入
+			# 添加 GAS_BTWaitSignal 等待连击输入
 			# 这是连击系统的核心：等待玩家在窗口期内输入，或超时失败
-			var wait_signal = BTWaitSignal.new()
+			var wait_signal = GAS_BTWaitSignal.new()
 			wait_signal.signal_key = "event_input_received"
 			wait_signal.timeout = window_duration  # 使用连击窗口期作为超时时间
 			wait_signal.consume_signal = true  # 消费信号，避免重复触发
 			wait_signal.node_id = "wait_combo_input"
 			wrapper.children.append(wait_signal)
 
-			# D. 推进索引（只有在 BTWaitSignal 返回 SUCCESS（收到输入）时才会执行到这里）
-			# 如果 BTWaitSignal 返回 FAILURE（超时），整个 wrapper 会返回 FAILURE，结束连击
-			var advance_node = BTSetVar.new()
+			# D. 推进索引（只有在 GAS_BTWaitSignal 返回 SUCCESS（收到输入）时才会执行到这里）
+			# 如果 GAS_BTWaitSignal 返回 FAILURE（超时），整个 wrapper 会返回 FAILURE，结束连击
+			var advance_node = GAS_BTSetVar.new()
 			advance_node.variable_key = "combo_index"
 			advance_node.value = i + 1
 			advance_node.node_id = "advance_combo"
@@ -244,15 +244,15 @@ func _build_combo_tree() -> BTNode:
 		else:
 			# 最后一段：执行完后还原图标，然后结束连击
 			# 还原图标为第一段的图标（combo_1），这样下次激活技能时，图标就是正确的
-			var reset_icon_node = BTSetVar.new()
+			var reset_icon_node = GAS_BTSetVar.new()
 			reset_icon_node.variable_key = "current_icon_id"
 			reset_icon_node.value = "combo_1" if combo_steps.size() > 0 else null
 			reset_icon_node.node_id = "reset_combo_icon"
 			wrapper.children.append(reset_icon_node)
 			
-			# 使用 BTCheckVar 检查一个不存在的变量，让它返回 FAILURE
-			# 这样 BTSequence 会返回 FAILURE，BTRepeatUntilFailure 会停止循环
-			var end_combo_node = BTCheckVar.new()
+			# 使用 GAS_BTCheckVar 检查一个不存在的变量，让它返回 FAILURE
+			# 这样 GAS_BTSequence 会返回 FAILURE，GAS_BTRepeatUntilFailure 会停止循环
+			var end_combo_node = GAS_BTCheckVar.new()
 			end_combo_node.key = "__combo_end_marker__"  # 使用一个不存在的变量
 			end_combo_node.check_exist_only = true  # 只检查存在性，变量不存在会返回 FAILURE
 			end_combo_node.node_id = "end_combo"
@@ -274,13 +274,13 @@ func _build_combo_tree() -> BTNode:
 	return root_sequence
 
 ## 递归移除行为树中的冷却节点（用于连击段）
-func _remove_cooldown_nodes(node: BTNode) -> void:
+func _remove_cooldown_nodes(node: GAS_BTNode) -> void:
 	if not is_instance_valid(node):
 		return
 
 	# 如果是组合节点，递归处理子节点
-	if node is BTComposite:
-		var composite = node as BTComposite
+	if node is GAS_BTComposite:
+		var composite = node as GAS_BTComposite
 		# 从后往前遍历，避免删除时索引问题
 		for i in range(composite.children.size() - 1, -1, -1):
 			var child = composite.children[i]
@@ -290,8 +290,8 @@ func _remove_cooldown_nodes(node: BTNode) -> void:
 			else:
 				# 递归处理子节点
 				_remove_cooldown_nodes(child)
-	elif node is BTDecorator:
-		var decorator = node as BTDecorator
+	elif node is GAS_BTDecorator:
+		var decorator = node as GAS_BTDecorator
 		if is_instance_valid(decorator.child):
 			if decorator.child is AbilityNodeCommitCooldown:
 				# 如果装饰器的子节点是CD节点，移除它（这通常不会发生，但为了安全）

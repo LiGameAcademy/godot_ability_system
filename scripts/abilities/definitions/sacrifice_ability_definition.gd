@@ -5,32 +5,32 @@ class_name SacrificeAbilityDefinition
 继承自 ToggleAbilityDefinition，基础结构：
 Root Sequence
 ├── AbilityNodePlayAnimation      # 1. 播放动画
-├── BTWait                        # 2. 前摇等待
+├── GAS_BTWait                        # 2. 前摇等待
 ├── AbilityNodeTargetSearch       # 3. 查找目标
-├── BTRepeatUntilFailure          # 4. 循环执行直到关闭
-│   └── BTSelector                # 5. 切换选择器
+├── GAS_BTRepeatUntilFailure          # 4. 循环执行直到关闭
+│   └── GAS_BTSelector                # 5. 切换选择器
 │       ├── Turn Off Sequence    # 分支1：关闭逻辑
-│       │   ├── BTCheckVar        # toggle_action == "turn_off"
+│       │   ├── GAS_BTCheckVar        # toggle_action == "turn_off"
 │       │   ├── AbilityNodeRemoveStatus
-│       │   ├── BTSetVar (clear icon)
+│       │   ├── GAS_BTSetVar (clear icon)
 │       │   ├── AbilityNodeCommitCooldown
-│       │   └── BTCheckVar (end marker, 返回 FAILURE)
+│       │   └── GAS_BTCheckVar (end marker, 返回 FAILURE)
 │       ├── Turn On Sequence      # 分支2：开启逻辑
-│       │   ├── BTCheckVar        # toggle_action == "turn_on"
+│       │   ├── GAS_BTCheckVar        # toggle_action == "turn_on"
 │       │   ├── AbilityNodeCommitCost        # 初始消耗
 │       │   ├── AbilityNodeApplyStatus
-│       │   ├── BTSetVar (icon_when_active)
-│       │   └── BTSetVar (set toggle_action = "on")
+│       │   ├── GAS_BTSetVar (icon_when_active)
+│       │   └── GAS_BTSetVar (set toggle_action = "on")
 │       └── Keep On Sequence      # 分支3：保持状态（子类扩展，包含周期性逻辑）
-│           ├── BTCheckVar        # toggle_action == "on"
-│           ├── BTRepeatPeriodic             # 【子类扩展】周期性逻辑
+│           ├── GAS_BTCheckVar        # toggle_action == "on"
+│           ├── GAS_BTRepeatPeriodic             # 【子类扩展】周期性逻辑
 │           │   └── Periodic Sequence
 │           │       ├── AbilityNodeTargetSearch (选择自身)
 │           │       ├── AbilityNodeApplyCost (检查并消耗生命值，不足时返回 FAILURE)
 │           │       ├── AbilityNodeTargetSearch (选择周围敌人)
 │           │       └── AbilityNodeApplyEffect (对敌人造成伤害)
-│           └── BTWaitSignal      # timeout = -1（无限等待），收到输入后进入关闭分支
-└── BTWait                        # 6. 后摇等待
+│           └── GAS_BTWaitSignal      # timeout = -1（无限等待），收到输入后进入关闭分支
+└── GAS_BTWait                        # 6. 后摇等待
 """
 
 @export_group("Sacrifice Settings")
@@ -49,13 +49,13 @@ Root Sequence
 ## 周期性伤害效果（对周围敌人应用的效果）
 @export var periodic_damage_effect: GameplayEffect = null
 
-func _build_keep_on_sequence() -> BTSequence:
+func _build_keep_on_sequence() -> GAS_BTSequence:
 	# 重写保持分支：在保持状态时执行周期性逻辑
-	var keep_on_sequence = BTSequence.new()
+	var keep_on_sequence = GAS_BTSequence.new()
 	keep_on_sequence.node_id = "keep_on_sequence"
 
 	# 检查是否为保持状态
-	var check_keep_on = BTCheckVar.new()
+	var check_keep_on = GAS_BTCheckVar.new()
 	check_keep_on.key = "toggle_action"
 	check_keep_on.value = "on"
 	check_keep_on.node_id = "check_keep_on"
@@ -63,13 +63,13 @@ func _build_keep_on_sequence() -> BTSequence:
 
 	# 周期性逻辑：检查消耗 + 消耗生命值 + 对敌人造成伤害
 	# 这个逻辑会在保持状态时持续执行，直到生命值不足或收到关闭信号
-	var periodic_repeat = BTRepeatPeriodic.new()
+	var periodic_repeat = GAS_BTRepeatPeriodic.new()
 	periodic_repeat.period = periodic_interval
 	periodic_repeat.execute_immediately = false  # 等待第一个周期
 	periodic_repeat.node_id = "periodic_repeat"
 
 	# 周期性执行的序列
-	var periodic_sequence = BTSequence.new()
+	var periodic_sequence = GAS_BTSequence.new()
 	periodic_sequence.node_id = "periodic_sequence"
 
 	# 1. 选择自身目标策略（确保后续节点操作的是自身）
