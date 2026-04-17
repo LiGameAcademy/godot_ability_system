@@ -1,0 +1,84 @@
+name: Bug 报告
+description: 报告插件崩溃、错误行为或与文档不符的问题
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        请先搜索已有 Issue，避免重复。若涉及敏感信息请勿粘贴到公开 Issue。
+
+  - type: input
+    id: godot_version
+    attributes:
+      label: Godot 版本
+      description: 例如 `4.5.1-stable`，可在「帮助 → 关于」中查看。
+      placeholder: 4.x.x
+    validations:
+      required: true
+
+  - type: input
+    id: plugin_version
+    attributes:
+      label: 插件版本
+      description: `plugin.cfg` 中的 `version`，或你使用的 commit/tag。
+      placeholder: 0.0.1 / main@abc1234
+    validations:
+      required: true
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: 操作系统
+      options:
+        - Windows
+        - macOS
+        - Linux
+        - 其他
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: 复现步骤
+      description: 从打开项目到出现问题的最小步骤；若需场景/资源，说明如何搭建。
+      placeholder: |
+        1. …
+        2. …
+        3. …
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected_actual
+    attributes:
+      label: 期望行为 vs 实际行为
+      value: |
+        **期望：**
+        **实际：**
+    validations:
+      required: true
+
+  - type: textarea
+    id: errors
+    attributes:
+      label: 报错与日志
+      description: 粘贴 Godot 输出/调试器栈追踪；长日志可用附件或 gist 链接。
+      render: markdown
+
+  - type: textarea
+    id: minimal
+    attributes:
+      label: 最小复现（可选）
+      description: 可附 `.zip` 仓库链接、最小场景说明或相关脚本片段。
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: 自检
+      options:
+        - label: 已在**干净示例项目**或最小场景中复现（若适用）
+          required: false
+        - label: 已确认未修改引擎源码（若适用）
+          required: false

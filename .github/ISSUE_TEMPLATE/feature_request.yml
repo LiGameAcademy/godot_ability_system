@@ -1,0 +1,46 @@
+name: 功能建议
+description: 提议新能力、API 或改进现有行为（非 Bug）
+title: "[Feature] "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: 背景与要解决的问题
+      description: 你在做什么游戏/系统时遇到了什么限制或痛点？
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: 建议方案
+      description: 期望的用法、API 形态或配置方式；可附伪代码。
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: 备选方案（可选）
+      description: 考虑过哪些变通办法？为何不够理想？
+
+  - type: dropdown
+    id: scope
+    attributes:
+      label: 影响范围（主观判断即可）
+      options:
+        - 仅编辑器 / 工具链
+        - 仅运行时
+        - 编辑器 + 运行时
+        - 不确定
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: contribute
+    attributes:
+      label: 贡献意愿
+      options:
+        - label: 我愿意在讨论确定方向后尝试提交 PR
+          required: false
