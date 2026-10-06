@@ -52,7 +52,7 @@ func tick(delta: float) -> void:
 func reset() -> void:
 	if not is_instance_valid(_instance):
 		return
-	_instance.reset()
+	_instance.reset_tree()
 
 func get_blackboard() -> GAS_BTBlackboard:
 	return _instance.blackboard if is_instance_valid(_instance) else null
