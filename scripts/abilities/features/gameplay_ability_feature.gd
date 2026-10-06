@@ -13,7 +13,13 @@ func _init(p_feature_name: String = "") -> void:
 func initialize(_instance: GameplayAbilityInstance) -> void:
 	pass
 
-## [子类可重写] 检查是否可以施法
+## [子类可重写] 只读解析意图，不修改实例、资源或黑板。
+## 返回本次请求的覆盖值；例如关闭切换技能时跳过费用与冷却。
+func get_activation_overrides(_ability: GameplayAbilityInstance) -> Dictionary:
+	return {}
+
+## [子类可重写] 只读检查。不要写入 context、实例、资源或黑板。
+## 需要执行准备的扩展应在 on_activate 中完成。
 func can_activate(ability: GameplayAbilityInstance, context: Dictionary) -> bool:
 	return true
 
