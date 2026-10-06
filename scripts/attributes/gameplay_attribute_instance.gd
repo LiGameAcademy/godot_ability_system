@@ -69,6 +69,11 @@ func remove_modifier(mod: GameplayAttributeModifier) -> void:
 		push_warning("AttributeInstance: _modifiers not has mod: %s" %mod)
 		return
 	_modifiers[mod.modifier_type].erase(mod)
+	if _modifiers_by_source_id.has(mod.source_id):
+		var source_modifiers: Array = _modifiers_by_source_id[mod.source_id]
+		source_modifiers.erase(mod)
+		if source_modifiers.is_empty():
+			_modifiers_by_source_id.erase(mod.source_id)
 	_on_data_changed()
 
 ## 根据 source_id 批量移除修改器

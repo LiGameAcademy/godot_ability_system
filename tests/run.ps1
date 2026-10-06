@@ -29,5 +29,7 @@ renderer/rendering_method="gl_compatibility"
 if ($LASTEXITCODE -ne 0 -or ($importOutput -match 'SCRIPT ERROR|Parse Error|Failed to load script')) {
     throw 'Regression host import failed.'
 }
-& $Godot --headless --path $hostPath --script res://tests/runner.gd -- @Cases
-if ($LASTEXITCODE -ne 0) { throw "Regression tests failed ($LASTEXITCODE)." }
+& $Godot --headless --path $hostPath --script res://tests/runner.gd -- @Cases 2>&1 | Tee-Object -Variable testOutput
+if ($LASTEXITCODE -ne 0 -or ($testOutput -match 'SCRIPT ERROR|Parse Error|Failed to load script')) {
+    throw "Regression tests failed ($LASTEXITCODE)."
+}
