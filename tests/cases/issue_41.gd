@@ -29,6 +29,7 @@ func run() -> void:
 func _check_legacy_writer() -> void:
 	var actor: Node = Node.new()
 	var definition: GameplayAbilityDefinition = GameplayAbilityDefinition.new()
+	definition.execution_tree = RegressionBTProbe.new()
 	var ability: GameplayAbilityInstance = definition.create_instance(actor)
 	var probe: CheckProbe = CheckProbe.new()
 	ability.add_feature("LegacyWriter", LegacyWriter.new())

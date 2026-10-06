@@ -36,6 +36,13 @@ func _apply(target: Node, instigator: Node, context: Dictionary) -> void:
 		attr_comp.add_modifier(mod)
 
 ## 移除效果的具体实现
+func _update_stacks(target: Node, instigator: Node, context: Dictionary, remove_previous: bool) -> void:
+	if remove_previous:
+		_remove_modifiers(target, context)
+	else:
+		_apply(target, instigator, context)
+
+## 移除效果的具体实现
 ## 注意：Effect 保持无状态特性，通过 context 中的 source_id 来识别要移除的修改器
 func _remove(target: Node, instigator: Node, context: Dictionary) -> void:
 	_remove_modifiers(target, context)
