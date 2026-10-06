@@ -65,7 +65,7 @@ func get_attribute_ratio(id: StringName, default_ratio: float = 1.0) -> float:
 		push_warning("GameplayAttributeComponent: Attribute with id %s not found, returning default ratio" % id)
 		return default_ratio
 		
-	var base = _attributes[id].base_value
+	var base: float = _attributes[id].base_value
 	if is_zero_approx(base):
 		push_warning("GameplayAttributeComponent: Base value of attribute %s is zero, returning default ratio" % id)
 		return default_ratio
