@@ -2,6 +2,8 @@
 
 Run `./tests/run.ps1 -Godot /absolute/path/to/godot_console.exe` in PowerShell.
 Use `-Cases issue_34` to select a case; omit it to run all cases.
+After the first import, `-SkipImport` runs against the cached class registry.
+Re-import when adding/removing global classes; changed scripts compile during the run.
 
 The generated ignored `.regression` host imports copies of the actual production
 scripts and registers the actual autoloads. It excludes the two optional integrations

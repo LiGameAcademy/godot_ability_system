@@ -71,7 +71,7 @@ func _enter(instance: GAS_BTInstance) -> void:
 	# 初始化运行时状态
 	var state = {
 		"elapsed": 0.0,
-		"is_waiting_for_period": false,
+		"is_waiting_for_period": not execute_immediately,
 		"has_executed_first": execute_immediately  # 如果立即执行，标记为已执行
 	}
 	_set_state(instance, state)
