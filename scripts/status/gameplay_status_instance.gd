@@ -110,25 +110,35 @@ func update(delta: float) -> bool:
 	return false
 
 ## 增加层数
-## 注意：堆叠只影响移除生效、周期触发和事件触发的效果，不会重新触发应用时效果
+## 堆叠更新持续修正；初次应用、真正移除与 Cue 不会被重放。
 func add_stack(amount: int = 1, is_refresh_duration: bool = true) -> void:
-	if stacks < status_data.max_stacks:
-		# 1. 移除旧的效果
-		var context = _cached_context.duplicate()
-		context["source_id"] = _get_source_instance_id()
-		_apply_effects(status_data.remove_effects, context)
-		_remove_effects(status_data.apply_effects, context)
-
-		# 2. 增加层数
-		stacks = min(stacks + amount, status_data.max_stacks)
-
-		# 3. 重新应用效果（使用新层数）
-		context["stacks"] = stacks
-		_apply_effects(status_data.apply_effects, context)
-
-	# 4. 刷新持续时间
+	var new_stacks: int = mini(stacks + maxi(amount, 0), status_data.max_stacks)
+	if new_stacks > stacks:
+		stacks = new_stacks
+		_refresh_stack_effects()
 	if is_refresh_duration:
 		refresh_duration()
+
+## 分两阶段更新持续修正，避免同一状态的多个修正互相移除。
+func _refresh_stack_effects() -> void:
+	if not is_instance_valid(owner_component):
+		return
+	var target: Node = owner_component.get_parent()
+	if not is_instance_valid(target):
+		return
+	var context: Dictionary = _cached_context.duplicate()
+	context["stacks"] = stacks
+	context["source_id"] = _get_source_instance_id()
+	var effects: Array[GameplayEffect] = []
+	for template: GameplayEffect in status_data.apply_effects:
+		if is_instance_valid(template):
+			var effect: GameplayEffect = template.duplicate(true) as GameplayEffect
+			if is_instance_valid(effect):
+				effects.append(effect)
+	for effect: GameplayEffect in effects:
+		effect.update_stacks(target, instigator, context, true)
+	for effect: GameplayEffect in effects:
+		effect.update_stacks(target, instigator, context, false)
 
 ## 处理事件（用于事件监听型效果）
 ## 此方法用于处理通过统一事件系统触发的事件

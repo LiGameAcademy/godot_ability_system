@@ -58,6 +58,21 @@ func remove(target: Node, instigator: Node, context: Dictionary = {}) -> void:
 	_remove_sub_effects(target, instigator, context)
 
 ## 检查过滤器
+## 叠层更新只调用持续效果钩子，不触发 apply/remove 事件或 Cue。
+## 状态实例先对所有效果执行移除阶段，再统一执行新层数阶段。
+func update_stacks(target: Node, instigator: Node, context: Dictionary, remove_previous: bool) -> void:
+	if not remove_previous and not _check_filters(target, instigator, context):
+		return
+	_update_stacks(target, instigator, context, remove_previous)
+	for effect: GameplayEffect in sub_effects:
+		if is_instance_valid(effect):
+			effect.update_stacks(target, instigator, context, remove_previous)
+
+## 一次性效果默认不响应层数更新；持续修正按需覆写。
+func _update_stacks(_target: Node, _instigator: Node, _context: Dictionary, _remove_previous: bool) -> void:
+	pass
+
+## 检查过滤器
 func _check_filters(target: Node, instigator: Node, context: Dictionary) -> bool:
 	# 1. 检查传统过滤器
 	for filter : GameplayFilterData in filters:
