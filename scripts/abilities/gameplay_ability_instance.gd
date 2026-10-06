@@ -12,9 +12,7 @@ var _preview_strategy: AbilityPreviewStrategy = null
 
 # 【核心状态】技能是否正在执行（行为树是否在跑）
 var is_active: bool = false
-var disabled : bool = false:
-	get:
-		return _definition.disabled
+var disabled: bool = false
 
 ## 技能完成信号
 signal ability_completed(success: bool)
@@ -24,6 +22,7 @@ signal ability_data_changed(ability: GameplayAbilityInstance)
 func _init(owner: Node, definition: GameplayAbilityDefinition) -> void:
 	_owner = owner
 	_definition = definition
+	disabled = definition.disabled
 	if is_instance_valid(definition.preview_strategy):
 		_preview_strategy = definition.preview_strategy.duplicate(true) as AbilityPreviewStrategy
 	# 初始化行为树黑板
@@ -40,6 +39,8 @@ func get_definition() -> GameplayAbilityDefinition:
 
 ## 尝试激活技能 (由 Player/Component 调用)
 func try_activate(context: Dictionary = {}) -> bool:
+	if disabled:
+		return false
 	if is_active:
 		# 如果技能已激活，无论是否允许重新激活，都应该处理连击输入
 		# 触发信号，确保 GAS_BTWaitSignal 能够收到通知（用于连击系统）
@@ -129,6 +130,8 @@ func end_ability(final_status: int = GAS_BTNode.Status.SUCCESS) -> void:
 
 ## 检查是否可以施法
 func can_activate(context: Dictionary = {}) -> bool:
+	if disabled:
+		return false
 	# 如果技能已激活，先让所有特性有机会设置 skip 标志（如 ToggleFeature 设置 skip_cost/skip_cooldown）
 	# 然后再进行实际的检查
 	if is_active:
