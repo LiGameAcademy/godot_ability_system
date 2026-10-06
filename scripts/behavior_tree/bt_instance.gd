@@ -10,6 +10,11 @@ var active_nodes: Array[GAS_BTNode] = []
 
 # 已注册的观察者列表
 var _observers: Array[GAS_BTNode] = []
+var _parents: Dictionary[GAS_BTNode, GAS_BTNode] = {}
+var _failed_observers: Array[GAS_BTObserver] = []
+var _pending_interruptions: Array[GAS_BTObserver] = []
+var _is_ticking: bool = false
+var _processing_abort: bool = false
 
 # 节点状态记录（用于判断节点是否在运行）
 var _node_status: Dictionary = {}
@@ -26,6 +31,7 @@ func _init(p_agent: Node, p_tree_root: GAS_BTNode, p_blackboard: GAS_BTBlackboar
 	blackboard.value_changed.connect(_on_blackboard_changed)
 	for warning: String in get_configuration_warnings():
 		push_warning("BehaviorTree: " + warning)
+	_index_tree(tree_root)
 
 ## 配置诊断只读，可以供编辑器或宿主工具展示。
 func get_configuration_warnings() -> PackedStringArray:
@@ -38,17 +44,31 @@ func tick(delta: float) -> int:
 	_current_frame += 1
 
 	# 从 Root 开始 Tick
-	var result = tree_root.tick(self, delta)
-
+	_is_ticking = true
+	var result: int = tree_root.tick(self, delta)
+	var pending: Array[GAS_BTObserver] = _pending_interruptions.duplicate()
+	_pending_interruptions.clear()
+	for observer: GAS_BTObserver in pending:
+		var status: int = GAS_BTNode.Status.SUCCESS if observer.check_condition(self) else GAS_BTNode.Status.FAILURE
+		_apply_interruption(observer, status)
+	_is_ticking = false
+	if result != GAS_BTNode.Status.RUNNING:
+		_failed_observers.clear()
 	return result
 
 # 只重置树的执行进度（软重置）
-func reset_tree():
+func reset_tree() -> void:
 	if is_instance_valid(tree_root):
 		tree_root.reset(self)
+	_failed_observers.clear()
+	_pending_interruptions.clear()
 
 func set_node_status(node: GAS_BTNode, status: int) -> void:
+	if not _node_status.has(node) and (node is GAS_BTSelector or node is GAS_BTDynamicSelector):
+		_forget_failed_observers(node)
 	_node_status[node] = status
+	if node not in active_nodes:
+		active_nodes.append(node)
 
 func get_node_status(node: GAS_BTNode, default: int = -1) -> int:
 	return _node_status.get(node, default)
@@ -58,9 +78,11 @@ func has_node_status(node: GAS_BTNode) -> bool:
 
 func erase_node_status(node: GAS_BTNode) -> void:
 	_node_status.erase(node)
+	active_nodes.erase(node)
 
 func clear_node_status() -> void:
 	_node_status.clear()
+	active_nodes.clear()
 
 ## 记录节点执行（由 GAS_BTNode.tick 调用）
 func record_node_execution(node: GAS_BTNode, status: int) -> void:
@@ -81,31 +103,29 @@ func unregister_observer(observer: GAS_BTNode) -> void:
 		return
 	_observers.erase(observer)
 
-func evaluate_interruption(observer: GAS_BTNode, new_status: int):
-	# 这里是基于事件行为树最复杂的地方：判定优先级
-	# 注意：只有 GAS_BTObserver 类型的观察者才支持中断逻辑
-	# GAS_BTWaitSignal 等节点只监听变化，不触发中断
+func evaluate_interruption(observer: GAS_BTNode, new_status: int) -> void:
 	if not observer is GAS_BTObserver:
 		return
-	
-	var bt_observer = observer as GAS_BTObserver
-	match bt_observer.abort_type:
+	var condition: GAS_BTObserver = observer as GAS_BTObserver
+	if _is_ticking or _processing_abort:
+		if condition not in _pending_interruptions:
+			_pending_interruptions.append(condition)
+		return
+	_apply_interruption(condition, new_status)
+
+## 只有实际检查失败的高优先级条件才参与后续事件检查。
+func watch_failed_observer(observer: GAS_BTObserver) -> void:
+	if observer.abort_type == GAS_BTObserver.AbortType.LOWER_PRIORITY and observer not in _failed_observers:
+		_failed_observers.append(observer)
+
+func _apply_interruption(observer: GAS_BTObserver, new_status: int) -> void:
+	match observer.abort_type:
 		GAS_BTObserver.AbortType.SELF:
-			# 如果观察者自己正在运行（是 active_nodes 的一部分）
-			# 且条件变成了 FAILURE，则中断自己
 			if _is_active(observer) and new_status == GAS_BTNode.Status.FAILURE:
 				_abort_execution(observer)
-
 		GAS_BTObserver.AbortType.LOWER_PRIORITY:
-			# 如果观察者当前没有运行（说明之前的条件是 Failure）
-			# 现在条件变成了 SUCCESS，且当前运行的节点优先级比观察者低
-			# 则中断当前节点，切回观察者所在的分支
-			if not _is_active(observer) and new_status == GAS_BTNode.Status.SUCCESS:
-				# 简单的优先级判定：在标准行为树中，
-				# 如果 Observer 是 Selector 的左侧子节点，而当前运行的是右侧子节点，
-				# 则 Observer 优先级更高。
-				if _is_higher_priority(observer):
-					_abort_execution(observer)
+			if not _is_active(observer) and new_status == GAS_BTNode.Status.SUCCESS and _is_higher_priority(observer):
+				_abort_execution(observer)
 
 ## 获取执行历史（用于调试面板）
 func get_execution_history() -> Array[Dictionary]:
@@ -143,22 +163,71 @@ func _is_active(node: GAS_BTNode) -> bool:
 	return node in active_nodes
 
 func _is_higher_priority(observer: GAS_BTNode) -> bool:
-	# 这是一个简化的逻辑，实际上需要根据树的结构判断
-	# 只要 Observer 不在 active_nodes 里，通常意味着
-	# 它是某个 Selector 左侧失败的分支，现在它想变成功，
-	# 那么它就有资格打断右侧正在运行的分支。
-	return true 
+	return is_instance_valid(_find_priority_scope(observer))
 
-## 中断执行
-func _abort_execution(source_node: GAS_BTNode):
-	# 强制重置树，或者重置到特定节点
-	print("ABORT triggered by: ", source_node)
-	reset_tree() # 简单粗暴：重置整棵树，下一帧 tick 会自动走进新分支
+## 找到真正拥有更低优先级活动分支的公共 Selector。
+func _find_priority_scope(observer: GAS_BTNode) -> GAS_BTComposite:
+	var branch: GAS_BTNode = observer
+	var parent: GAS_BTNode = _parents.get(branch)
+	while is_instance_valid(parent):
+		if parent is GAS_BTSelector or parent is GAS_BTDynamicSelector:
+			var selector: GAS_BTComposite = parent as GAS_BTComposite
+			var observer_index: int = selector.children.find(branch)
+			var active_index: int = selector.children.size()
+			for active: GAS_BTNode in active_nodes:
+				var active_branch: GAS_BTNode = _branch_under(selector, active)
+				var index: int = selector.children.find(active_branch)
+				if index >= 0:
+					active_index = mini(active_index, index)
+			if observer_index >= 0 and active_index > observer_index and active_index < selector.children.size():
+				return selector
+		branch = parent
+		parent = _parents.get(branch)
+	return null
 
-## 黑板变化时通知观察者
-func _on_blackboard_changed(key: String, value: Variant) -> void:
-	# 当黑板变化时，通知所有注册的观察者
-	# 注意：为了防止遍历中修改数组，最好用 duplicate
-	for obs in _observers.duplicate():
-		if is_instance_valid(obs) and obs.has_method("on_blackboard_change"):
-			obs.on_blackboard_change(self, key)
+func _branch_under(parent: GAS_BTNode, node: GAS_BTNode) -> GAS_BTNode:
+	var branch: GAS_BTNode = node
+	while is_instance_valid(branch):
+		var ancestor: GAS_BTNode = _parents.get(branch)
+		if ancestor == parent:
+			return branch
+		branch = ancestor
+	return null
+
+func _index_tree(node: GAS_BTNode, parent: GAS_BTNode = null) -> void:
+	if not is_instance_valid(node) or _parents.has(node):
+		return
+	_parents[node] = parent
+	if node is GAS_BTComposite:
+		for child: GAS_BTNode in (node as GAS_BTComposite).children:
+			_index_tree(child, node)
+	elif node is GAS_BTDecorator:
+		_index_tree((node as GAS_BTDecorator).child, node)
+
+func _forget_failed_observers(root: GAS_BTNode) -> void:
+	for observer: GAS_BTObserver in _failed_observers.duplicate():
+		if observer == root or is_instance_valid(_branch_under(root, observer)):
+			_failed_observers.erase(observer)
+
+## 只退出条件自身或所属 Selector，保留祖先 Sequence 的已完成进度。
+func _abort_execution(source_node: GAS_BTNode) -> void:
+	var observer: GAS_BTObserver = source_node as GAS_BTObserver
+	var scope: GAS_BTNode = observer
+	if observer.abort_type == GAS_BTObserver.AbortType.LOWER_PRIORITY:
+		scope = _find_priority_scope(observer)
+	if not is_instance_valid(scope):
+		return
+	_processing_abort = true
+	scope.reset(self)
+	_forget_failed_observers(scope)
+	_processing_abort = false
+
+## 活动观察者与当前 Selector 中实际失败过的条件共同接收变化。
+func _on_blackboard_changed(key: String, _value: Variant) -> void:
+	var observers: Array[GAS_BTNode] = _observers.duplicate()
+	for observer: GAS_BTObserver in _failed_observers:
+		if observer not in observers and _is_higher_priority(observer):
+			observers.append(observer)
+	for observer: GAS_BTNode in observers:
+		if is_instance_valid(observer) and observer.has_method("on_blackboard_change"):
+			observer.on_blackboard_change(self, key)
