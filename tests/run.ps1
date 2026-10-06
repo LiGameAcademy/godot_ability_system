@@ -1,11 +1,22 @@
 param(
     [Parameter(Mandatory = $true)][string]$Godot,
-    [string[]]$Cases = @()
+    [string[]]$Cases = @(),
+    [switch]$SkipImport
 )
 $ErrorActionPreference = 'Stop'
 $repo = Split-Path $PSScriptRoot -Parent
 $hostPath = Join-Path $repo '.regression'
 New-Item -ItemType Directory -Force $hostPath | Out-Null
+# Rebuild only these generated folders; otherwise tests from a previous branch survive.
+foreach ($folder in @('scripts', 'tests')) {
+    $generatedPath = [IO.Path]::GetFullPath((Join-Path $hostPath $folder))
+    if (-not $generatedPath.StartsWith([IO.Path]::GetFullPath($hostPath) + [IO.Path]::DirectorySeparatorChar)) {
+        throw 'Generated path escaped the regression host.'
+    }
+    if (Test-Path -LiteralPath $generatedPath) {
+        Remove-Item -LiteralPath $generatedPath -Recurse -Force
+    }
+}
 Copy-Item -LiteralPath (Join-Path $repo 'scripts') -Destination $hostPath -Recurse -Force
 Copy-Item -LiteralPath $PSScriptRoot -Destination $hostPath -Recurse -Force
 # These two optional integrations require game-owned classes (tracked in Issue #1).
@@ -25,9 +36,13 @@ GameplayCueManager="*res://scripts/singletons/gameplay_cue_manager.gd"
 [rendering]
 renderer/rendering_method="gl_compatibility"
 '@ | Set-Content -LiteralPath (Join-Path $hostPath 'project.godot') -Encoding utf8
-& $Godot --headless --path $hostPath --editor --import 2>&1 | Tee-Object -Variable importOutput
-if ($LASTEXITCODE -ne 0 -or ($importOutput -match 'SCRIPT ERROR|Parse Error|Failed to load script')) {
-    throw 'Regression host import failed.'
+if (-not $SkipImport) {
+    & $Godot --headless --path $hostPath --editor --import 2>&1 | Tee-Object -Variable importOutput
+    if ($LASTEXITCODE -ne 0 -or ($importOutput -match 'SCRIPT ERROR|Parse Error|Failed to load script')) {
+        throw 'Regression host import failed.'
+    }
+} elseif (-not (Test-Path -LiteralPath (Join-Path $hostPath '.godot/global_script_class_cache.cfg'))) {
+    throw 'SkipImport requires a previously imported regression host.'
 }
 & $Godot --headless --path $hostPath --script res://tests/runner.gd -- @Cases 2>&1 | Tee-Object -Variable testOutput
 if ($LASTEXITCODE -ne 0 -or ($testOutput -match 'SCRIPT ERROR|Parse Error|Failed to load script')) {
