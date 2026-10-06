@@ -22,6 +22,7 @@ func run() -> void:
 	actor.add_child(component)
 	var definition: GameplayAbilityDefinition = GameplayAbilityDefinition.new()
 	definition.ability_id = &"preview_test"
+	definition.execution_tree = RegressionBTProbe.new()
 	var gate: Gate = Gate.new()
 	definition.features = [gate]
 	definition.preview_strategy = Preview.new()

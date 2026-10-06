@@ -27,28 +27,19 @@ class_name ActiveAbilityDefinition
 ## 技能快捷键
 @export var input_action : StringName = &""
 
-## 缓存的默认行为树（所有实例共享，避免重复构建）
-var _cached_default_tree: GAS_BTNode = null
-
 ## 重写基类的工厂方法
 func create_instance(owner: Node) -> GameplayAbilityInstance:
-	_validate_configuration()
-	var tree_to_use = _get_execution_tree()
-	var original_tree = execution_tree
-	execution_tree = tree_to_use
-	var instance = super(owner)
-	execution_tree = original_tree
+	var instance: GameplayAbilityInstance = super(owner)
+	if not is_instance_valid(instance):
+		return null
 	_inject_features_to_instance(instance)
 	return instance
 
-## 获取执行树（优先使用用户配置，否则使用缓存的默认树）
+## 获取执行树：自定义树保持只读，标准流程按本次配置构建。
 func _get_execution_tree() -> GAS_BTNode:
 	if is_instance_valid(execution_tree):
 		return execution_tree
-	if is_instance_valid(_cached_default_tree):
-		return _cached_default_tree
-	_cached_default_tree = _build_default_behavior_tree()
-	return _cached_default_tree
+	return _build_default_behavior_tree()
 
 ## 动态构建行为树结构 (构建的是 GAS_BTNode 资源图，而不是 Instance)
 func _build_default_behavior_tree(include_cooldown: bool = true, include_cost: bool = true) -> GAS_BTNode:
@@ -141,27 +132,16 @@ func _inject_features_to_instance(instance: GameplayAbilityInstance) -> void:
 		instance.add_feature(input_feature.feature_name, input_feature)
 
 ## 验证配置的合理性
-func _validate_configuration() -> void:
-	if is_instance_valid(targeting_strategy):
-		if effects.is_empty():
-			push_warning(
-				"ActiveAbilityDefinition [%s]: 配置了 targeting_strategy 但没有配置 effects。\n" % ability_id +
-				"targeting_strategy 可能不会被使用。"
-			)
-	if pre_cast_delay < 0.0:
-		push_error("ActiveAbilityDefinition [%s]: pre_cast_delay 不能为负数 (%.2f)" % [ability_id, pre_cast_delay])
-		pre_cast_delay = 0.0
-	if post_cast_delay < 0.0:
-		push_error("ActiveAbilityDefinition [%s]: post_cast_delay 不能为负数 (%.2f)" % [ability_id, post_cast_delay])
-		post_cast_delay = 0.0
-	if cooldown_duration < 0.0:
-		push_error("ActiveAbilityDefinition [%s]: cooldown_duration 不能为负数 (%.2f)" % [ability_id, cooldown_duration])
-		cooldown_duration = 0.0
-	if animation_speed <= 0.0:
-		push_error("ActiveAbilityDefinition [%s]: animation_speed 必须为正数 (%.2f)" % [ability_id, animation_speed])
-		animation_speed = 1.0
-	if effects.is_empty():
-		push_warning(
-			"ActiveAbilityDefinition [%s]: 没有配置 effects，技能可能不会产生任何效果。\n" % ability_id +
-			"请确保这是预期的行为。"
-		)
+func get_configuration_errors() -> PackedStringArray:
+	var errors: PackedStringArray = super()
+	_check_number(errors, "pre_cast_delay", pre_cast_delay)
+	_check_number(errors, "post_cast_delay", post_cast_delay)
+	_check_number(errors, "cooldown_duration", cooldown_duration)
+	_check_number(errors, "animation_speed", animation_speed, true)
+	_check_quick_features(errors, costs, cooldown_duration, input_action)
+	if target_key.is_empty() and (not effects.is_empty() or is_instance_valid(targeting_strategy)):
+		errors.append("target_key cannot be empty when targeting or effects are configured")
+	for effect: GameplayEffect in effects:
+		if not is_instance_valid(effect):
+			errors.append("effects contains an empty resource")
+	return errors
