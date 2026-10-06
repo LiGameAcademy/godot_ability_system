@@ -37,11 +37,7 @@ class_name GameplayAbilityDefinition
 func create_instance(owner: Node) -> GameplayAbilityInstance:
 	var instance = GameplayAbilityInstance.new(owner, self)
 
-	# 1. 注入默认黑板数据
-	for key in blackboard_defaults:
-		instance.set_blackboard_var(key, blackboard_defaults[key])
-
-	# 2. 初始化特性 (如果需要)
+	# 默认数据由实例独立复制；这里仅初始化特性。
 	# 大部分特性是无状态的 Resource，直接引用即可
 	for feature in features:
 		if not is_instance_valid(feature):
