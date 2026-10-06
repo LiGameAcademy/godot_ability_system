@@ -1,6 +1,9 @@
 extends GAS_BTAction
 class_name GAS_BTCheckVar
 
+func get_reevaluation_safety() -> int:
+	return ReevaluationSafety.SAFE
+
 @export var key: String = ""
 @export var value: Variant
 # 只检查参数是否存在

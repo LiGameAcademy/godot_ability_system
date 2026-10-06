@@ -1,6 +1,9 @@
 extends GAS_BTAction
 class_name GAS_BTWait
 
+func get_reevaluation_safety() -> int:
+	return ReevaluationSafety.SAFE
+
 ## 等待时间（秒）
 @export var duration: float = 1.0
 ## 从黑板读取等待时间的 Key（可选，如果设置则优先使用）

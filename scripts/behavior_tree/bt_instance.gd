@@ -24,6 +24,12 @@ func _init(p_agent: Node, p_tree_root: GAS_BTNode, p_blackboard: GAS_BTBlackboar
 	tree_root = p_tree_root
 	blackboard = p_blackboard if is_instance_valid(p_blackboard) else GAS_BTBlackboard.new()
 	blackboard.value_changed.connect(_on_blackboard_changed)
+	for warning: String in get_configuration_warnings():
+		push_warning("BehaviorTree: " + warning)
+
+## 配置诊断只读，可以供编辑器或宿主工具展示。
+func get_configuration_warnings() -> PackedStringArray:
+	return GAS_BTTreeValidator.get_warnings(tree_root)
 
 func tick(delta: float) -> int:
 	if not tree_root or not is_instance_valid(agent):
