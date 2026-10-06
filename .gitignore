@@ -1,1 +1,3 @@
 /examples/*.tmp
+/.test_tools/
+/.regression/
