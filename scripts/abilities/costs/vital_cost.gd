@@ -27,7 +27,7 @@ func _try_pay(_ability_comp: Node, instigator: Node) -> bool:
 	if not is_instance_valid(vital_comp) or not vital_comp.has_vital(vital_id):
 		return false
 	if allow_overdraft:
-		vital_comp.get_vital(vital_id).modify_value(-amount)
+		vital_comp.modify_vital(vital_id, -amount)
 		return true
 	return vital_comp.modify_vital(vital_id, -amount)
 
