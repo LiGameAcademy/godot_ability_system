@@ -16,19 +16,25 @@ func _init() -> void:
 		target_blocked_tags = [invulnerable_block_tag]
 
 func _apply(target: Node, instigator: Node, context: Dictionary) -> void:
-	damage_multiplier *= context.get("damage_multiplier", 1)
-	context["damage_multiplier"] = damage_multiplier
-	damage_strategy = context.get("damage_strategy", damage_strategy)
+	var calculation_context: Dictionary = context.duplicate()
+	calculation_context["damage_multiplier"] = damage_multiplier * float(context.get("damage_multiplier", 1.0))
+	var strategy: DamageLogicStrategy = context.get("damage_strategy", damage_strategy) as DamageLogicStrategy
 	
 	# 1. 获取 HealthVital
-	var vital_comp = GameplayAbilitySystem.get_component_by_interface(target, vital_comp_name)
-	var health_vital: HealthVital = vital_comp.get_vital(vital_id)
+	var vital_comp: GameplayVitalAttributeComponent = GameplayAbilitySystem.get_component_by_interface(target, vital_comp_name) as GameplayVitalAttributeComponent
+	if not is_instance_valid(vital_comp):
+		push_warning("GE_ApplyDamage: target has no compatible Vital component")
+		return
+	var health_vital: HealthVital = vital_comp.get_vital(vital_id) as HealthVital
+	if not is_instance_valid(health_vital):
+		push_warning("GE_ApplyDamage: configured vital is not a HealthVital")
+		return
 	
 	# 直接从 context Dictionary 读取
 	var stacks = context.get("stacks", 1)
 	
 	# 2. 计算最终伤害
-	var final_damage = DamageCalculator.calculate_final_damage(target, instigator, context, damage_strategy)
+	var final_damage: float = DamageCalculator.calculate_final_damage(target, instigator, calculation_context, strategy)
 	
 	# 3. 创建 GameplayDamageInfo
 	var damage_info = GameplayDamageInfo.new(instigator, context.get("source_node", null), final_damage * stacks)

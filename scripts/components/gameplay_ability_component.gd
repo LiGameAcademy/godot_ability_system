@@ -228,6 +228,8 @@ func try_activate_ability(ability_id: StringName, context: Dictionary = {}) -> b
 func cancel_ability(ability_id: StringName = &"", context: Dictionary = {}) -> void:
 	var target_id = ability_id
 	if ability_id.is_empty():
+		if not is_instance_valid(_current_casting_ability):
+			return
 		target_id = _current_casting_ability.get_definition().ability_id
 		
 	if target_id.is_empty():
