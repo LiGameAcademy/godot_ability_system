@@ -12,6 +12,8 @@ func _update_indicator(indicator: Node3D, caster: Node3D, mouse_position: Vector
 	# 如果是指向性贴花，可能需要调整 Y 轴适应地形（这里简化处理）
 
 func get_result_context() -> Dictionary:
+	if not is_instance_valid(caster):
+		return {}
 	var final_pos = _get_clamped_position(caster.global_position, _mouse_position)
 	return {
 		"target_position": final_pos,  # 供 TargetingStrategy 使用的位置

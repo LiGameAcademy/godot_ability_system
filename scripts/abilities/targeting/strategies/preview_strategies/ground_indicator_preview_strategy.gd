@@ -25,19 +25,34 @@ var _indicator : Node3D
 var _finished : bool = false
 var _result_context : Dictionary = {}
 var _mouse_position : Vector3 = Vector3.ZERO
-var caster : Node
+var caster: Node3D
 
 func begin(caster: Node, ability_instance: GameplayAbilityInstance, extra_context: Dictionary = {}) -> void:
-	_indicator = _create_indicator(caster)
+	cancel()
+	self.caster = caster as Node3D
+	if not is_instance_valid(self.caster):
+		push_warning("Ground preview requires a Node3D caster")
+		return
+	_mouse_position = self.caster.global_position
+	_indicator = _create_indicator(self.caster)
+
+func is_targeting() -> bool:
+	return is_instance_valid(caster) and not _finished
+
+func is_finished() -> bool:
+	return _finished
 
 func update(delta: float, input_context: Dictionary = {}) -> void:
+	if not is_instance_valid(caster):
+		cancel()
+		return
 	_mouse_position = input_context.get("mouse_position", Vector3.ZERO)
 	if not is_instance_valid(_indicator):
 		return
 	_update_indicator(_indicator, caster, _mouse_position)
 
 	# 比如当检测到点击确认按键， 就设置 _finished = true 并且写入 result
-	if Input.is_action_just_pressed("confirm_cast"):
+	if InputMap.has_action("confirm_cast") and Input.is_action_just_pressed("confirm_cast"):
 		_finished = true
 		_result_context ={
 			"target_position": _get_clamped_position(caster.global_position, _mouse_position),
@@ -46,11 +61,16 @@ func update(delta: float, input_context: Dictionary = {}) -> void:
 
 func cancel() -> void:
 	_cancel_indicator()
+	caster = null
+	_finished = false
+	_result_context.clear()
 
 ## [3] 获取数据：确定目标，返回 Context 字典
 ## 注意：返回的 context 会传递给行为树，供 TargetingStrategy 使用
 ## context 中应包含 target_position，供 GroundTargetingStrategy 等策略读取
 func get_result_context() -> Dictionary:
+	if not is_instance_valid(caster):
+		return {}
 	var final_pos = _get_clamped_position(caster.global_position, _mouse_position)
 	return {
 		"target_position": final_pos,  # 供 TargetingStrategy 使用的位置

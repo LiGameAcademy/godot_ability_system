@@ -13,6 +13,8 @@ func _update_indicator(indicator: Node3D, caster: Node3D, mouse_position: Vector
 		indicator.look_at(look_at_pos, Vector3.UP)
 
 func get_result_context() -> Dictionary:
+	if not is_instance_valid(caster):
+		return {}
 	var direction = (_mouse_position - caster.global_position).normalized()
 	direction.y = 0 # 扁平化处理
 
