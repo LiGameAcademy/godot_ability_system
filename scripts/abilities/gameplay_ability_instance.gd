@@ -6,6 +6,7 @@ class_name GameplayAbilityInstance
 var _owner: Node
 var _definition: GameplayAbilityDefinition
 var _features: Dictionary[String, GameplayAbilityFeature] = {}
+var _feature_storage: Dictionary[String, Dictionary] = {}
 var _bt_instance : GAS_BTInstance = null
 var _blackboard: GAS_BTBlackboard = null
 
@@ -26,7 +27,7 @@ func _init(owner: Node, definition: GameplayAbilityDefinition) -> void:
 	# 初始化行为树黑板
 	_blackboard = GAS_BTBlackboard.new()
 	_blackboard.value_changed.connect(_on_blackboard_value_changed)
-	_blackboard.set_var("ability_instance", self)
+	clear_blackboard()
 	if is_instance_valid(_definition.execution_tree):
 		_bt_instance = GAS_BTInstance.new(_owner, _definition.execution_tree, _blackboard)
 	#else:
@@ -72,7 +73,7 @@ func try_activate(context: Dictionary = {}) -> bool:
 
 	# 2. 注入初始黑板数据（在设置 is_active 之前）
 	if is_instance_valid(_blackboard):
-		_blackboard.clear() # 清理上一轮的残留
+		clear_blackboard() # 重置本次执行数据，保留 Feature 持久状态
 		# 将 context 注入黑板，供树节点读取
 		_blackboard.set_var("ability_instance", self)
 		_blackboard.set_var("context", context)
@@ -198,6 +199,24 @@ func get_blackboard_var(key: String, default: Variant = null) -> Variant:
 
 func clear_blackboard() -> void:
 	_blackboard.clear()
+	var defaults: Dictionary = _definition.blackboard_defaults.duplicate(true)
+	for key: Variant in defaults:
+		if key is String or key is StringName:
+			_blackboard.set_var(str(key), defaults[key])
+	_blackboard.set_var("ability_instance", self)
+
+## Feature 状态独立于行为树的每次执行数据。
+func get_feature_data(feature_name: String, key: String, default: Variant = null) -> Variant:
+	return _feature_storage.get(feature_name, {}).get(key, default)
+
+func set_feature_data(feature_name: String, key: String, value: Variant) -> void:
+	if not _feature_storage.has(feature_name):
+		_feature_storage[feature_name] = {}
+	var storage: Dictionary = _feature_storage[feature_name]
+	if storage.has(key) and storage[key] == value:
+		return
+	storage[key] = value
+	ability_data_changed.emit(self)
 
 #endregion
 
