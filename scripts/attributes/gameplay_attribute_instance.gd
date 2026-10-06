@@ -142,9 +142,10 @@ func _set_base_value(val: float) -> void:
 	if base_value == val:
 		return
 	
-	base_value =val
+	var old_value: float = base_value
+	base_value = val
 	_on_data_changed()
-	base_value_changed.emit(base_value, val)
+	base_value_changed.emit(old_value, val)
 
 ## 设置等级（会重新计算 base_value）
 func _set_current_level(level: int) -> void:
