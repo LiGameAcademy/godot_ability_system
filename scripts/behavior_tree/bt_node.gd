@@ -31,12 +31,8 @@ func tick(instance: GAS_BTInstance, delta: float) -> int:
 
 	# 4. 处理生命周期结束
 	if result != Status.RUNNING:
-		# 如果结果是 成功 或 失败，说明节点运行结束
-		_exit(instance)
-		# 清理运行状态（但不清理存储数据）
-		instance.erase_node_status(self)
-		# 清理存储数据（由节点自己决定是否清理）
-		instance.blackboard.erase_node_data(self)
+		# 与中断共用幂等收尾；子节点内部可能已经调用过 reset。
+		reset(instance)
 	else:
 		# 如果是 RUNNING，更新状态
 		instance.set_node_status(self, result)
