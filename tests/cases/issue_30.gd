@@ -29,6 +29,8 @@ func run() -> void:
 	ability.try_activate({"skip_cooldown": true})
 	expect(cooldown.get_cooldown_remaining(ability) == 5.0, "Activation with skip must not wipe an existing cooldown")
 	ability.end_ability()
+	ability.remove_feature(feature.feature_name)
+	expect(ability.get_feature_data(feature.feature_name, "count", 0) == 0, "Feature removal must release its own persistent storage")
 	# Release blackboard's self entry explicitly in this regression fixture.
 	ability.get_blackboard().clear()
 	other.get_blackboard().clear()

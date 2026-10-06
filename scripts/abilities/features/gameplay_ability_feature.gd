@@ -51,8 +51,7 @@ func get_description() -> String:
 func get_animation_name() -> StringName:
 	return &""
 
-# 语法糖：快速获取 Feature 专属的私有数据
-# 不需要用户手动拼 Key，基类帮你拼好： "CooldownFeature_cooldown_timer"
+## 获取当前技能实例中 Feature 的持久数据，不依赖执行黑板键。
 func _get_data(instance: GameplayAbilityInstance, key: String, default: Variant = null) -> Variant:
 	return instance.get_feature_data(feature_name, key, default)
 

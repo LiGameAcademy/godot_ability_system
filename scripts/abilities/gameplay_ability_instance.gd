@@ -163,6 +163,7 @@ func add_feature(feature_name: String, feature: GameplayAbilityFeature) -> void:
 ## 删除特性
 func remove_feature(feature_name : StringName) -> bool:
 	if _features.has(feature_name):
+		_feature_storage.erase(_features[feature_name].feature_name)
 		_features.erase(feature_name)
 		return true
 	return false
@@ -213,7 +214,8 @@ func clear_blackboard() -> void:
 
 ## Feature 状态独立于行为树的每次执行数据。
 func get_feature_data(feature_name: String, key: String, default: Variant = null) -> Variant:
-	return _feature_storage.get(feature_name, {}).get(key, default)
+	var storage: Dictionary = _feature_storage.get(feature_name, {})
+	return storage.get(key, default)
 
 func set_feature_data(feature_name: String, key: String, value: Variant) -> void:
 	if not _feature_storage.has(feature_name):
