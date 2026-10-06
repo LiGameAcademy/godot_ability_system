@@ -21,8 +21,14 @@ func _apply(target: Node, instigator: Node, context: Dictionary) -> void:
 	var strategy: DamageLogicStrategy = context.get("damage_strategy", damage_strategy) as DamageLogicStrategy
 	
 	# 1. 获取 HealthVital
-	var vital_comp = GameplayAbilitySystem.get_component_by_interface(target, vital_comp_name)
-	var health_vital: HealthVital = vital_comp.get_vital(vital_id)
+	var vital_comp: GameplayVitalAttributeComponent = GameplayAbilitySystem.get_component_by_interface(target, vital_comp_name) as GameplayVitalAttributeComponent
+	if not is_instance_valid(vital_comp):
+		push_warning("GE_ApplyDamage: target has no compatible Vital component")
+		return
+	var health_vital: HealthVital = vital_comp.get_vital(vital_id) as HealthVital
+	if not is_instance_valid(health_vital):
+		push_warning("GE_ApplyDamage: configured vital is not a HealthVital")
+		return
 	
 	# 直接从 context Dictionary 读取
 	var stacks = context.get("stacks", 1)
