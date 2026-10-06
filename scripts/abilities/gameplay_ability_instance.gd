@@ -9,12 +9,11 @@ var _features: Dictionary[String, GameplayAbilityFeature] = {}
 var _feature_storage: Dictionary[String, Dictionary] = {}
 var _bt_instance : GAS_BTInstance = null
 var _blackboard: GAS_BTBlackboard = null
+var _preview_strategy: AbilityPreviewStrategy = null
 
 # 【核心状态】技能是否正在执行（行为树是否在跑）
 var is_active: bool = false
-var disabled : bool = false:
-	get:
-		return _definition.disabled
+var disabled: bool = false
 
 ## 技能完成信号
 signal ability_completed(success: bool)
@@ -24,6 +23,9 @@ signal ability_data_changed(ability: GameplayAbilityInstance)
 func _init(owner: Node, definition: GameplayAbilityDefinition) -> void:
 	_owner = owner
 	_definition = definition
+	disabled = definition.disabled
+	if is_instance_valid(definition.preview_strategy):
+		_preview_strategy = definition.preview_strategy.duplicate(true) as AbilityPreviewStrategy
 	# 初始化行为树黑板
 	_blackboard = GAS_BTBlackboard.new()
 	_blackboard.value_changed.connect(_on_blackboard_value_changed)
@@ -38,6 +40,8 @@ func get_definition() -> GameplayAbilityDefinition:
 
 ## 尝试激活技能 (由 Player/Component 调用)
 func try_activate(context: Dictionary = {}) -> bool:
+	if disabled:
+		return false
 	if is_active:
 		# 如果技能已激活，无论是否允许重新激活，都应该处理连击输入
 		# 触发信号，确保 GAS_BTWaitSignal 能够收到通知（用于连击系统）
@@ -127,6 +131,8 @@ func end_ability(final_status: int = GAS_BTNode.Status.SUCCESS) -> void:
 
 ## 检查是否可以施法
 func can_activate(context: Dictionary = {}) -> bool:
+	if disabled:
+		return false
 	# 如果技能已激活，先让所有特性有机会设置 skip 标志（如 ToggleFeature 设置 skip_cost/skip_cooldown）
 	# 然后再进行实际的检查
 	if is_active:
@@ -222,8 +228,11 @@ func set_feature_data(feature_name: String, key: String, value: Variant) -> void
 
 #region ========== 瞄准/预览逻辑 (Targeting) ==========
 ## 检查是否配置了预览策略
+func get_preview_strategy() -> AbilityPreviewStrategy:
+	return _preview_strategy
+
 func has_targeting() -> bool:
-	return is_instance_valid(_definition.preview_strategy)
+	return is_instance_valid(_preview_strategy)
 
 ## 检查是否应该智能施法
 func should_smart_cast() -> bool:
@@ -235,32 +244,32 @@ func should_smart_cast() -> bool:
 func start_targeting(extra_context: Dictionary = {}) -> void:
 	if not has_targeting():
 		return
-	_definition.preview_strategy.begin(_owner, self, extra_context)
+	_preview_strategy.begin(_owner, self, extra_context)
 
 ## [API] 更新预览 (每帧调用)
 func update_targeting(delta: float, input_context: Dictionary = {}) -> void:
 	if not is_targeting():
 		return
 
-	_definition.preview_strategy.update(delta, input_context)
+	_preview_strategy.update(delta, input_context)
 	
 ## [API] 确认预览 -> 返回 Context 数据
 func confirm_targeting() -> Dictionary:
 	var context = {}
 	if has_targeting():
 		# 使用策略计算最终数据
-		context = _definition.preview_strategy.get_result_context()
+		context = _preview_strategy.get_result_context()
 	return context
 
 ## [API] 取消预览
 func cancel_targeting() -> void:
-	if is_instance_valid(_definition.preview_strategy):
-		_definition.preview_strategy.cancel()
+	if is_instance_valid(_preview_strategy):
+		_preview_strategy.cancel()
 		
 func is_targeting() -> bool:
-	if not is_instance_valid(_definition.preview_strategy):
+	if not is_instance_valid(_preview_strategy):
 		return false
-	return _definition.preview_strategy.is_targeting()
+	return _preview_strategy.is_targeting()
 #endregion
 
 func get_current_icon() -> Texture:
