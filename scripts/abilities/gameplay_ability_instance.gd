@@ -8,6 +8,7 @@ var _definition: GameplayAbilityDefinition
 var _features: Dictionary[String, GameplayAbilityFeature] = {}
 var _bt_instance : GAS_BTInstance = null
 var _blackboard: GAS_BTBlackboard = null
+var _preview_strategy: AbilityPreviewStrategy = null
 
 # 【核心状态】技能是否正在执行（行为树是否在跑）
 var is_active: bool = false
@@ -23,6 +24,8 @@ signal ability_data_changed(ability: GameplayAbilityInstance)
 func _init(owner: Node, definition: GameplayAbilityDefinition) -> void:
 	_owner = owner
 	_definition = definition
+	if is_instance_valid(definition.preview_strategy):
+		_preview_strategy = definition.preview_strategy.duplicate(true) as AbilityPreviewStrategy
 	# 初始化行为树黑板
 	_blackboard = GAS_BTBlackboard.new()
 	_blackboard.value_changed.connect(_on_blackboard_value_changed)
@@ -203,8 +206,11 @@ func clear_blackboard() -> void:
 
 #region ========== 瞄准/预览逻辑 (Targeting) ==========
 ## 检查是否配置了预览策略
+func get_preview_strategy() -> AbilityPreviewStrategy:
+	return _preview_strategy
+
 func has_targeting() -> bool:
-	return is_instance_valid(_definition.preview_strategy)
+	return is_instance_valid(_preview_strategy)
 
 ## 检查是否应该智能施法
 func should_smart_cast() -> bool:
@@ -216,32 +222,32 @@ func should_smart_cast() -> bool:
 func start_targeting(extra_context: Dictionary = {}) -> void:
 	if not has_targeting():
 		return
-	_definition.preview_strategy.begin(_owner, self, extra_context)
+	_preview_strategy.begin(_owner, self, extra_context)
 
 ## [API] 更新预览 (每帧调用)
 func update_targeting(delta: float, input_context: Dictionary = {}) -> void:
 	if not is_targeting():
 		return
 
-	_definition.preview_strategy.update(delta, input_context)
+	_preview_strategy.update(delta, input_context)
 	
 ## [API] 确认预览 -> 返回 Context 数据
 func confirm_targeting() -> Dictionary:
 	var context = {}
 	if has_targeting():
 		# 使用策略计算最终数据
-		context = _definition.preview_strategy.get_result_context()
+		context = _preview_strategy.get_result_context()
 	return context
 
 ## [API] 取消预览
 func cancel_targeting() -> void:
-	if is_instance_valid(_definition.preview_strategy):
-		_definition.preview_strategy.cancel()
+	if is_instance_valid(_preview_strategy):
+		_preview_strategy.cancel()
 		
 func is_targeting() -> bool:
-	if not is_instance_valid(_definition.preview_strategy):
+	if not is_instance_valid(_preview_strategy):
 		return false
-	return _definition.preview_strategy.is_targeting()
+	return _preview_strategy.is_targeting()
 #endregion
 
 func get_current_icon() -> Texture:
