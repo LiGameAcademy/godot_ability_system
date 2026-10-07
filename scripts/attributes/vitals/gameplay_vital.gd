@@ -59,6 +59,40 @@ func process_regen(delta: float):
 func modify_value(amount: float, is_regen: bool = false) -> void:
 	_modify_value(amount, is_regen)
 
+## 扣除已经汇总的内置 Vital 费用。全部检查通过后写入，再发送变化通知。
+## payments 保存本次实际扣款额；本入口不处理冷却、退款或重复提交。
+static func try_pay_batch(payments: Dictionary[GameplayVital, float]) -> bool:
+	var previous: Dictionary[GameplayVital, float] = {}
+	var remaining: Dictionary[GameplayVital, float] = {}
+	var maxima: Dictionary[GameplayVital, float] = {}
+	for vital: GameplayVital in payments:
+		if not is_instance_valid(vital) or not is_instance_valid(vital._owner_comp):
+			return false
+		var amount: float = payments[vital]
+		var balance: float = vital.current_value
+		var maximum: float = vital.get_max_value()
+		if not is_finite(amount) or amount < 0.0 or not is_finite(balance) or balance < amount:
+			return false
+		if not is_finite(maximum) or maximum < 0.0 or balance > maximum:
+			return false
+		previous[vital] = balance
+		remaining[vital] = balance - amount
+		maxima[vital] = maximum
+	# 此区间不发信号、不调用外部钩子，观察者无法介入一半的扣款。
+	for vital: GameplayVital in remaining:
+		vital.current_value = remaining[vital]
+	for vital: GameplayVital in remaining:
+		var old_value: float = previous[vital]
+		var new_value: float = remaining[vital]
+		var maximum: float = maxima[vital]
+		if old_value == new_value:
+			continue
+		# 使用本次付款快照；之前的通知回调可能已经发起另一次数值修改。
+		vital.value_changed.emit(new_value, maximum, new_value / maximum if maximum > 0.0 else 0.0, false)
+		if new_value <= 0.0 and old_value > 0.0:
+			vital.depleted.emit()
+	return true
+
 ## 获取最大值
 ## [return] float 当前的最大值
 func get_max_value() -> float:
