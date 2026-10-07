@@ -251,9 +251,11 @@
 
 #### 方法
 
-##### `apply_effect(target: Node, context: Dictionary) -> void`
+##### `apply(target: Node, instigator: Node, context: Dictionary = {}) -> GameplayEffectResult`
 
-应用效果。
+应用效果并返回状态、原因、数值输出和子效果结果。失败或未生效时不继续成功 Cue / 子效果。
+自定义效果通过 `_apply_result(...) -> GameplayEffectResult` 报告结果；旧 void 钩子为 UNVERIFIED。
+详见[效果结果说明](effect_results.md)。
 
 ---
 
@@ -298,7 +300,7 @@
 
 读取本轮执行或最近终结的快照，包含 execution_id、失败原因和费用/冷却阶段记录。
 局部 ability_finished(result: AbilityResult) 信号携带结束那一轮的快照。
-流程完成不等于命中；效果结果还需后续实现。详见[技能结果说明](ability_results.md)。
+快照还包含各目标的 effects 结果；流程完成不等于命中。详见[技能结果说明](ability_results.md)。
 
 ##### `cancel() -> void`
 
@@ -578,4 +580,3 @@
 ## 总结
 
 本文档提供了系统的主要 API 参考。更多详细信息请参考各模块的详细文档。
-

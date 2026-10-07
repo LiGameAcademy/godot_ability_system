@@ -1,31 +1,27 @@
 extends GameplayEffect
 class_name GE_ModifyIncomingDamage
 
-## 修改即将到来的伤害（在 HealthVital.apply_damage 中触发之前）
-## 典型用法：
-## - 减伤护盾：将伤害乘以 0.5
-## - 易伤：将伤害乘以 1.5
-## 要求：
-## - 该 Effect 应该挂在监听 damage_received 事件的状态上
-
 @export_range(0.0, 10.0, 0.01) var damage_multiplier: float = 0.5
 
-func _apply(target: Node, _instigator: Node, context: Dictionary) -> void:
-	var damage_info: GameplayDamageInfo = context.get("damage_info")
-	if not is_instance_valid(damage_info):
-		return
+func _apply(target: Node, instigator: Node, context: Dictionary) -> void:
+	_apply_result(target, instigator, context)
 
-	# 【关键】读取层数并调整伤害倍率
-	var stacks = context.get("stacks", 1)
-	var final_multiplier = damage_multiplier
-	if stacks > 1:
-		# 指数放大：每层减少更多伤害
-		# 例如：1 层 0.5，2 层 0.25，3 层 0.125
-		final_multiplier = pow(damage_multiplier, stacks)
-		# 或使用线性公式：final_multiplier = damage_multiplier * (1.0 - 0.1 * (stacks - 1))
-	
-	# GameplayDamageInfo 是引用类型，直接修改其 final_damage 即可影响后续计算
-	damage_info.final_damage *= final_multiplier
+func _apply_result(_target: Node, _instigator: Node, context: Dictionary) -> GameplayEffectResult:
+	var payload: Variant = context.get("damage_info")
+	var info: GameplayDamageInfo = payload as GameplayDamageInfo if payload is GameplayDamageInfo else null
+	if not is_instance_valid(info):
+		return GameplayEffectResult.new(GameplayEffectResult.Status.FAILED, GameplayEffectResult.Reason.MISSING_DEPENDENCY)
+	var stacks: Variant = context.get("stacks", 1)
+	if not stacks is int or stacks < 1 or not is_finite(damage_multiplier) or damage_multiplier < 0.0:
+		return GameplayEffectResult.new(GameplayEffectResult.Status.FAILED, GameplayEffectResult.Reason.INVALID_CONFIGURATION)
+	var before: float = info.final_damage
+	var after: float = before * pow(damage_multiplier, int(stacks))
+	if not is_finite(after):
+		return GameplayEffectResult.new(GameplayEffectResult.Status.FAILED, GameplayEffectResult.Reason.INVALID_CONFIGURATION)
+	info.final_damage = after
+	var result: GameplayEffectResult = GameplayEffectResult.new(GameplayEffectResult.Status.APPLIED if before != after else GameplayEffectResult.Status.NOT_APPLIED, GameplayEffectResult.Reason.NONE if before != after else GameplayEffectResult.Reason.NO_CHANGE)
+	result.outputs = {"final_damage": after}
+	return result
 
 func _get_description() -> String:
-	return "Modify incoming damage by multiplier %.2f\n" % damage_multiplier
+	return "Modify incoming damage by multiplier %.2f" % damage_multiplier

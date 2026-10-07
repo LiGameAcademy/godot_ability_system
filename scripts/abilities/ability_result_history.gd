@@ -23,6 +23,32 @@ func get_current(commit: Dictionary) -> AbilityResult:
 	_copy_commit(result, commit)
 	return result
 
+func record_effect(result: GameplayEffectResult) -> void:
+	if _current.status not in [AbilityResult.Status.RUNNING, AbilityResult.Status.FINISHING]:
+		return
+	_current.effects.append(result.copy())
+	record_effect_outcome(result)
+
+func record_effect_outcome(result: GameplayEffectResult) -> void:
+	if _current.status not in [AbilityResult.Status.RUNNING, AbilityResult.Status.FINISHING]:
+		return
+	_current.feature_name = ""
+	_current.failure_reason = AbilityResult.FailureReason.NONE
+	if result.status == GameplayEffectResult.Status.UNVERIFIED:
+		_current.failure_reason = AbilityResult.FailureReason.UNVERIFIED_EFFECT
+	elif result.has_failure():
+		_current.failure_reason = AbilityResult.FailureReason.EFFECT_FAILED
+	elif not result.did_apply():
+		match result.reason:
+			GameplayEffectResult.Reason.NO_TARGET, GameplayEffectResult.Reason.INVALID_TARGET:
+				_current.failure_reason = AbilityResult.FailureReason.NO_TARGET
+			GameplayEffectResult.Reason.IMMUNE:
+				_current.failure_reason = AbilityResult.FailureReason.IMMUNE
+			GameplayEffectResult.Reason.FILTERED, GameplayEffectResult.Reason.REQUIRED_TAG_MISSING:
+				_current.failure_reason = AbilityResult.FailureReason.FILTERED
+			_:
+				_current.failure_reason = AbilityResult.FailureReason.EFFECT_FAILED
+
 func get_last_finished() -> AbilityResult:
 	return _last_finished.copy()
 

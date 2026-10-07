@@ -50,11 +50,15 @@ NOT_ACTIVE、DISPOSED、BUSY 等被拒绝的提交请求不会覆盖一轮执行
 下一次成功提交会清除这次提交的失败诊断；fallback 正常完成时也不把先前失败当作终结失败。
 已提交的费用/冷却记录始终保留，取消或 fallback 不会自动退款、撤销冷却。
 
-## #40 后续范围
+## 效果事实与流程结果
 
-本阶段未实现目标未命中、效果免疫和部分效果成功；这些需要 #43 的效果结果契约，
-以及对应 BT 节点把结果适配为控制流。#40 保持开放，不能把树返回 SUCCESS 当成效果已发生。
-也没有新增全局事件路由；组件转发、事件作用范围与分类在 #45 继续处理。
+effects 保存本轮各目标的 GameplayEffectResult 快照，包含实际生效、免疫、过滤、
+空目标、依赖或配置错误及数值输出。复合效果保留子结果，部分成功不自动回滚。
+执行失败时 failure_reason 可为 NO_TARGET、IMMUNE、FILTERED、EFFECT_FAILED 或 UNVERIFIED_EFFECT。
+正常完成仍为 COMPLETED / NONE；例如显式允许空目标的技能可以完成，但 effects 中保留 NO_TARGET。
+BT 节点按声明的成功与停止策略消费这些结果，详见[效果结果说明](effect_results.md)。
+
+组件转发、事件作用范围与分类在 #45 继续处理。
 
 ## 验证
 
