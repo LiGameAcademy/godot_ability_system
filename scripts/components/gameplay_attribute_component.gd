@@ -8,6 +8,7 @@ class_name GameplayAttributeComponent
 @export var _active_sets: Array[GameplayAttributeSet] = []
 # ID -> Instance（运行时实例）
 var _attributes: Dictionary[StringName, GameplayAttributeInstance] = {}
+var _initialized: bool = false
 
 ## 当前等级（用于计算 ScalableValue）
 var current_level: int = 1 : set = _set_current_level
@@ -25,8 +26,13 @@ func _ready() -> void:
 		initialize()
 
 ## 初始化属性组件
+## 每个组件实例只初始化一次；重复调用不会覆盖配置或运行数值。
 ## [param] sets: Array[GameplayAttributeSet] 属性集数组
 func initialize(sets: Array[GameplayAttributeSet] = []) -> void:
+	if _initialized:
+		return
+	# 先设标记，避免依赖钩子或数值信号回调再次进入初始化。
+	_initialized = true
 	if not sets.is_empty():
 		_active_sets = sets.duplicate(true)
 	
@@ -42,6 +48,10 @@ func initialize(sets: Array[GameplayAttributeSet] = []) -> void:
 	# 再处理依赖关系 (此时所有属性都已存在，可以互相读取)
 	for atr_set in _active_sets:
 		atr_set.resolve_dependencies(self)
+
+## 是否已经开始初始化（初始化回调期间也返回 true）。
+func is_initialized() -> bool:
+	return _initialized
 
 ## 获取属性值
 ## [param] id: StringName 属性ID

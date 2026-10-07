@@ -29,6 +29,8 @@ func _process(delta: float) -> void:
 ## [param] sets: Array[GameplayAttributeSet] 属性集数组
 ## [param] vitals: Array[GameplayVital] Vital 数组
 func initialize(sets: Array[GameplayAttributeSet] = [], vitals: Array[GameplayVital] = []) -> void:
+	if is_initialized():
+		return
 	# 先初始化属性系统（重要：必须在 Vital 之前）
 	super(sets)
 
