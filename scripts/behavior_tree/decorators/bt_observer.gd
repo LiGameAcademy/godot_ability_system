@@ -27,6 +27,7 @@ func _tick_decorator(instance: GAS_BTInstance, delta: float) -> int:
 	var condition_met = check_condition(instance)
 
 	if not condition_met:
+		instance.watch_failed_observer(self)
 		# 条件不满足，返回失败，不执行子节点
 		return Status.FAILURE
 		
