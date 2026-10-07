@@ -163,12 +163,16 @@ func handle_event(event_id: StringName, context: Dictionary) -> bool:
 
 	# 让所有 Feature 处理事件
 	for feature: StatusFeature in status_data.features:
+		if _removed:
+			return false
 		if is_instance_valid(feature):
-			feature.handle_event(self, event_id, context)
+			feature.handle_event(self, event_id, context.duplicate(true))
+	if _removed:
+		return false
 
 	# 调用持续时间策略的handle_event方法
 	if is_instance_valid(_duration_policy):
-		return _duration_policy.handle_event(self, event_id, context)
+		return _duration_policy.handle_event(self, event_id, context.duplicate(true))
 	
 	if remaining_duration <= 0.0:
 		return true

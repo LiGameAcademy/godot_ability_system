@@ -8,21 +8,28 @@ var _active_statuses: Dictionary[StringName, GameplayStatusInstance] = {}
 var _has_event_listening_statuses: bool = false  # 是否有需要监听事件的状态
 var _exiting: bool = false
 var _replacing: bool = false
+@export var receive_bus_events: bool = true
+var _event_dispatcher: GameplayEventDispatcher = GameplayEventDispatcher.new()
 
 signal status_applied(status_id: StringName, instance: GameplayStatusInstance)
 signal status_removed(status_id: StringName)
 signal status_stacked(status_id: StringName, new_stacks: int)
+signal gameplay_event_occurred(event: GameplayEvent)
+signal event_rejected(event_id: StringName, reason: StringName, diagnostic: Dictionary)
+
+func _init() -> void:
+	_event_dispatcher.event_delivered.connect(_on_local_event)
+	_event_dispatcher.event_rejected.connect(_on_event_rejected)
 
 func _ready() -> void:
 	_exiting = false
-	# 订阅事件总线的统一游戏事件（统一管理，只连接一次）
-	if not AbilityEventBus.game_event_occurred.is_connected(_on_game_event_occurred):
-		AbilityEventBus.game_event_occurred.connect(_on_game_event_occurred)
+	if receive_bus_events and not AbilityEventBus.gameplay_event_occurred.is_connected(_on_gameplay_event):
+		AbilityEventBus.gameplay_event_occurred.connect(_on_gameplay_event)
 
 func _exit_tree() -> void:
 	_exiting = true
-	if AbilityEventBus.game_event_occurred.is_connected(_on_game_event_occurred):
-		AbilityEventBus.game_event_occurred.disconnect(_on_game_event_occurred)
+	if AbilityEventBus.gameplay_event_occurred.is_connected(_on_gameplay_event):
+		AbilityEventBus.gameplay_event_occurred.disconnect(_on_gameplay_event)
 	for status_id: StringName in _active_statuses.keys():
 		remove_status(status_id)
 
@@ -146,22 +153,43 @@ func get_random_status(is_debuff: bool = false, debuff_tag : String = "status.de
 
 ## 处理事件（供外部调用，触发事件监听型效果）
 func handle_event(event_id: StringName, context: Dictionary) -> void:
-	# 只处理有事件监听需求的状态
-	if not _has_event_listening_statuses:
+	trigger_event(event_id, context)
+
+## 角色自己的局部入口：不通过全局总线，也能与嵌套的总线事件共用链预算。
+func trigger_event(event_id: StringName, context: Dictionary = {}, source: Node = null) -> bool:
+	if _exiting:
+		return false
+	return _event_dispatcher.dispatch(GameplayEvent.new(event_id, get_parent(), source, GameplayEvent.Scope.LOCAL, context))
+
+func _on_gameplay_event(event: GameplayEvent) -> void:
+	if _exiting or not _has_event_listening_statuses or not is_instance_valid(event):
 		return
-
-	var statuses_to_remove: Array[StringName] = []
-	for status_id: StringName in _active_statuses:
-		var instance: GameplayStatusInstance = _active_statuses.get(status_id)
-		if not is_instance_valid(instance):
+	if event.get_scope() == GameplayEvent.Scope.LOCAL and event.get_target() != get_parent():
+		return
+	# 快照固定本轮接收者，新建状态留到下一次事件；旧实例不能移除同 ID 的替代者。
+	for instance: GameplayStatusInstance in get_active_statuses():
+		if not is_instance_valid(self) or _exiting:
+			return
+		if not is_instance_valid(instance) or not is_instance_valid(instance.status_data):
 			continue
-		
-		var should_remove: bool = instance.handle_event(event_id, context)
-		if should_remove:
-			statuses_to_remove.append(status_id)
+		var status_id: StringName = instance.status_data.status_id
+		if _active_statuses.get(status_id) != instance:
+			continue
+		if event.get_scope() == GameplayEvent.Scope.GLOBAL and not instance.status_data.listen_to_global_events:
+			continue
+		var should_remove: bool = instance.handle_event(event.get_event_id(), event.get_context())
+		if not is_instance_valid(self):
+			return
+		if should_remove and _active_statuses.get(status_id) == instance:
+			remove_status(status_id)
 
-	for status_id: StringName in statuses_to_remove:
-		remove_status(status_id)
+func _on_local_event(event: GameplayEvent) -> void:
+	_on_gameplay_event(event)
+	if is_instance_valid(self):
+		gameplay_event_occurred.emit(event)
+
+func _on_event_rejected(event_id: StringName, reason: StringName, diagnostic: Dictionary) -> void:
+	event_rejected.emit(event_id, reason, diagnostic)
 
 func _apply_stacking_for_existing_status(status_id: StringName, gsd: GameplayStatusData, stacks: int) -> bool:
 	if not _active_statuses.has(status_id):
@@ -237,6 +265,3 @@ func _update_event_listening_status() -> void:
 				_has_event_listening_statuses = true
 				break
 
-func _on_game_event_occurred(event_type: StringName, context: Dictionary) -> void:
-	handle_event(event_type, context)
-	

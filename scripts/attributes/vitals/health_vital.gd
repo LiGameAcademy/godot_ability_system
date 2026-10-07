@@ -38,15 +38,20 @@ func modify_value(amount: float, is_regen: bool = false) -> void:
 ## [param] owner_entity: Node 拥有者实体
 ## [return] float 最终伤害值（用于 Cue 系统）
 func apply_damage(damage_info: GameplayDamageInfo, owner_entity: Node) -> float:
-	if not is_alive: return 0.0
+	if not is_alive or not is_instance_valid(damage_info) or not is_instance_valid(owner_entity):
+		return 0.0
 	# 发出伤害接收信号（在计算减免之前）
 	damage_received.emit(damage_info)
-	AbilityEventBus.trigger_game_event(&"damage_received", {
+	if not is_instance_valid(owner_entity):
+		return 0.0
+	AbilityEventBus.trigger_local_event(&"damage_received", owner_entity, {
 		"damage_info": damage_info
-	})
+	}, damage_info.instigator if is_instance_valid(damage_info.instigator) else null)
+	if not is_instance_valid(owner_entity):
+		return 0.0
 	
 	# 在应用伤害前被BUFF修改为0或更少
-	var final_damage = damage_info.final_damage
+	var final_damage: float = damage_info.final_damage
 	if final_damage <= 0: return 0.0
 
 	# 应用伤害
@@ -55,13 +60,14 @@ func apply_damage(damage_info: GameplayDamageInfo, owner_entity: Node) -> float:
 	
 	# UI系统可以监听这个信号来显示伤害飘字
 	damage_applied.emit(damage_info, final_damage)
-	AbilityEventBus.trigger_game_event(&"damage_applied", {
-		"damage_info": damage_info
-	})
+	if is_instance_valid(owner_entity):
+		AbilityEventBus.trigger_local_event(&"damage_applied", owner_entity, {
+			"damage_info": damage_info
+		}, damage_info.instigator if is_instance_valid(damage_info.instigator) else null)
 
 	# 处理死亡
 	if not is_alive:
-		_die(damage_info.instigator, owner_entity)
+		_die(damage_info.instigator if is_instance_valid(damage_info.instigator) else null, owner_entity if is_instance_valid(owner_entity) else null)
 
 	# 返回最终伤害值（供 Cue 系统使用）
 	return final_damage

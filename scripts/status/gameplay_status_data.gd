@@ -31,6 +31,8 @@ class_name GameplayStatusData
 ## 状态特性列表
 ## 通过组合不同的 Feature 实现复杂的状态行为
 @export var features: Array[StatusFeature] = []
+## 默认只响应本角色的事件；需要世界/队伍级广播的状态显式开启。
+@export var listen_to_global_events: bool = false
 
 # --- 叠加策略 ---
 @export_group("Stacking")
@@ -52,13 +54,13 @@ class_name GameplayStatusData
 
 ## 检查此状态是否可以被指定事件触发
 func can_trigger_on_event(event_type: StringName) -> bool:
-	for feature in features:
-		if feature.can_trigger_on_event(event_type):
+	for feature: StatusFeature in features:
+		if is_instance_valid(feature) and feature.can_trigger_on_event(event_type):
 			return true
 	return false
 
 func has_event_listening() -> bool:
-	for feature in features:
+	for feature: StatusFeature in features:
 		if is_instance_valid(feature) and feature.has_event_listening():
 			return true
 	return false

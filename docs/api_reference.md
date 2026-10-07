@@ -563,14 +563,22 @@
 
 ### AbilityEventBus
 
-事件总线（单例）。
+项目级事件入口（单例）。局部事件也可直接调用 `GameplayStatusComponent.trigger_event`。
+
+#### 方法
+
+- `trigger_local_event(event_id: StringName, target: Node, context: Dictionary = {}, source: Node = null) -> bool` - 发给明确的角色。
+- `trigger_global_event(event_id: StringName, context: Dictionary = {}, source: Node = null) -> bool` - 显式广播，状态需开启 `listen_to_global_events`。
+- `send_event(event: GameplayEvent) -> bool` - 发送包含路由和数据快照的事件。
+- `trigger_game_event(event_id: StringName, context: Variant = {}) -> void` - 兼容入口，默认局部，需要 `target` 或 `entity`。
 
 #### 信号
 
-- `ability_activated(ability: GameplayAbilityInstance)` - 技能激活
-- `ability_completed(ability: GameplayAbilityInstance)` - 技能完成
-- `status_applied(status: GameplayStatusInstance)` - 状态应用
-- `status_removed(status_id: StringName)` - 状态移除
+- `gameplay_event_occurred(event: GameplayEvent)` - 带类型事件，接收者通过 `get_context()` 获取独立快照。
+- `game_event_occurred(event_type: StringName, context: Dictionary)` - 旧观察接口，字典按只读约定使用。
+- `event_rejected(event_id: StringName, reason: StringName, diagnostic: Dictionary)` - 无效目标或超预算链诊断。
+
+事件范围、同步链预算和旧调用迁移详见[事件说明](events.md)。
 
 ---
 
