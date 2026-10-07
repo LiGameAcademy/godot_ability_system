@@ -1,84 +1,70 @@
-name: Bug 报告
-description: 报告插件崩溃、错误行为或与文档不符的问题
-title: "[Bug] "
+name: 遇到 Bug 了
+description: 告诉我们发生了什么，一起定位报错或不符合预期的行为。
 labels: ["bug"]
 body:
   - type: markdown
     attributes:
       value: |
-        请先搜索已有 Issue，避免重复。若涉及敏感信息请勿粘贴到公开 Issue。
-
+        先搜一下有没有相同的问题。标题可以直接写现象，例如“取消技能后，地面指示器还在”。
+        不用先找到根因或解决办法；下面把你看到的情况说清楚就好。
+  - type: textarea
+    id: problem
+    attributes:
+      label: 发生了什么？
+      description: 当时在做什么，哪里不符合预期？如果影响了游戏运行，也请说明。
+      placeholder: 释放一个需要瞄准的技能，再按取消，指示器仍留在场景中。
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: 怎么遇到这个问题的？
+      description: 写最少的操作步骤或脚本片段。如果暂时无法稳定复现，也可以说明出现条件。
+      placeholder: |
+        1. 给角色配置地面预览策略。
+        2. 开始瞄准，再取消技能。
+        3. 查看场景中的指示器是否已清理。
+    validations:
+      required: true
+  - type: textarea
+    id: expected_actual
+    attributes:
+      label: 你希望发生什么，实际又是什么？
+      placeholder: |
+        希望：取消后指示器消失，可以重新开始瞄准。
+        实际：旧指示器留在场景中，再次瞄准时又出现一个。
+    validations:
+      required: true
   - type: input
     id: godot_version
     attributes:
       label: Godot 版本
-      description: 例如 `4.5.1-stable`，可在「帮助 → 关于」中查看。
-      placeholder: 4.x.x
+      description: 在“帮助 → 关于”查看完整版本，并说明是否使用 .NET 版；本轮开发目标是 4.7.x。
+      placeholder: 4.7 stable，.NET 版
     validations:
       required: true
-
   - type: input
     id: plugin_version
     attributes:
-      label: 插件版本
-      description: `plugin.cfg` 中的 `version`，或你使用的 commit/tag。
-      placeholder: 0.0.1 / main@abc1234
-    validations:
-      required: true
-
+      label: 插件版本或提交（可选）
+      description: 填下载的 tag、commit 或下载日期即可；不知道时可以留空。
+      placeholder: main 的某次提交 / 2026-10-07 下载
   - type: dropdown
     id: os
     attributes:
-      label: 操作系统
+      label: 操作系统（可选）
       options:
         - Windows
         - macOS
         - Linux
         - 其他
-    validations:
-      required: true
-
-  - type: textarea
-    id: reproduction
-    attributes:
-      label: 复现步骤
-      description: 从打开项目到出现问题的最小步骤；若需场景/资源，说明如何搭建。
-      placeholder: |
-        1. …
-        2. …
-        3. …
-    validations:
-      required: true
-
-  - type: textarea
-    id: expected_actual
-    attributes:
-      label: 期望行为 vs 实际行为
-      value: |
-        **期望：**
-        **实际：**
-    validations:
-      required: true
-
   - type: textarea
     id: errors
     attributes:
-      label: 报错与日志
-      description: 粘贴 Godot 输出/调试器栈追踪；长日志可用附件或 gist 链接。
-      render: markdown
-
+      label: 报错、截图或日志（可选）
+      description: 有的话附上第一条报错和相关堆栈。长日志可上传附件，公开前请移除私人信息。
   - type: textarea
     id: minimal
     attributes:
-      label: 最小复现（可选）
-      description: 可附 `.zip` 仓库链接、最小场景说明或相关脚本片段。
-
-  - type: checkboxes
-    id: checklist
-    attributes:
-      label: 自检
-      options:
-        - label: 已在**干净示例项目**或最小场景中复现（若适用）
-          required: false
-        - label: 已确认未修改引擎源码（若适用）
-          required: false
+      label: 最小示例或相关代码（可选）
+      description: 可以附小工程、场景或仓库链接。不需要上传整个游戏，也不要求先在干净工程中复现。

@@ -5,6 +5,10 @@ class_name AbilityNodeBase
 ## [配置] 目标在黑板中的 Key
 @export var target_key: String = "targets"
 
+## 技能动作默认包含扣费、效果或表现等副作用。
+func get_reevaluation_safety() -> int:
+	return ReevaluationSafety.SIDE_EFFECTS
+
 ## 获取上下文（从黑板中获取 AbilityContext）
 func _get_context(instance: GAS_BTInstance) -> Dictionary:
 	var context : Dictionary = _get_var(instance, "context", {})

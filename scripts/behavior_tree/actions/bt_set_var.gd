@@ -1,6 +1,9 @@
 extends GAS_BTAction
 class_name GAS_BTSetVar
 
+func get_reevaluation_safety() -> int:
+	return ReevaluationSafety.SIDE_EFFECTS
+
 ## 设置黑板变量节点
 ## 通用的设置黑板变量的节点，支持任意类型的值
 ##

@@ -1,6 +1,9 @@
 extends GAS_BTAction
 class_name GAS_BTLog
 
+func get_reevaluation_safety() -> int:
+	return ReevaluationSafety.SIDE_EFFECTS
+
 enum LogLevel {
 	INFO,
 	WARNING,

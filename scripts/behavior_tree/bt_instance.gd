@@ -29,7 +29,13 @@ func _init(p_agent: Node, p_tree_root: GAS_BTNode, p_blackboard: GAS_BTBlackboar
 	tree_root = p_tree_root
 	blackboard = p_blackboard if is_instance_valid(p_blackboard) else GAS_BTBlackboard.new()
 	blackboard.value_changed.connect(_on_blackboard_changed)
+	for warning: String in get_configuration_warnings():
+		push_warning("BehaviorTree: " + warning)
 	_index_tree(tree_root)
+
+## 配置诊断只读，可以供编辑器或宿主工具展示。
+func get_configuration_warnings() -> PackedStringArray:
+	return GAS_BTTreeValidator.get_warnings(tree_root)
 
 func tick(delta: float) -> int:
 	if not tree_root or not is_instance_valid(agent):
@@ -56,6 +62,20 @@ func reset_tree() -> void:
 		tree_root.reset(self)
 	_failed_observers.clear()
 	_pending_interruptions.clear()
+
+## 释放宿主会话和监听；实例销毁后不再复用。
+func dispose() -> void:
+	reset_tree()
+	if is_instance_valid(blackboard) and blackboard.value_changed.is_connected(_on_blackboard_changed):
+		blackboard.value_changed.disconnect(_on_blackboard_changed)
+	_observers.clear()
+	_parents.clear()
+	_node_status.clear()
+	active_nodes.clear()
+	execution_history.clear()
+	agent = null
+	tree_root = null
+	blackboard = null
 
 func set_node_status(node: GAS_BTNode, status: int) -> void:
 	if not _node_status.has(node) and (node is GAS_BTSelector or node is GAS_BTDynamicSelector):

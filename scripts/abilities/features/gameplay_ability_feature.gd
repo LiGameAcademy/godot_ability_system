@@ -13,7 +13,13 @@ func _init(p_feature_name: String = "") -> void:
 func initialize(_instance: GameplayAbilityInstance) -> void:
 	pass
 
-## [子类可重写] 检查是否可以施法
+## [子类可重写] 只读解析意图，不修改实例、资源或黑板。
+## 返回本次请求的覆盖值；例如关闭切换技能时跳过费用与冷却。
+func get_activation_overrides(_ability: GameplayAbilityInstance) -> Dictionary:
+	return {}
+
+## [子类可重写] 只读检查。不要写入 context、实例、资源或黑板。
+## 需要执行准备的扩展应在 on_activate 中完成。
 func can_activate(ability: GameplayAbilityInstance, context: Dictionary) -> bool:
 	return true
 
@@ -21,11 +27,13 @@ func can_activate(ability: GameplayAbilityInstance, context: Dictionary) -> bool
 func on_activate(ability: GameplayAbilityInstance, context: Dictionary) -> void:
 	pass
 
-## [子类可重写] 技能被取消时的处理
+## [子类可重写] 取消、活跃时遗忘或角色退出时调用，随后仍调用 on_completed。
+## 树和预览已经清理，context 带 end_reason；此阶段不接受重启。
 func on_cancel(ability: GameplayAbilityInstance, context: Dictionary) -> void:
 	pass
 
-## [子类可重写] 技能完成时的处理
+## [子类可重写] 所有执行终结时调用一次；自然失败不会调用 on_cancel。
+## 内部收尾钩子不接受重启；可在外部 ability_completed 信号中重新激活。
 func on_completed(ability: GameplayAbilityInstance) -> void:
 	pass
 
@@ -40,6 +48,7 @@ func on_learned(ability: GameplayAbilityInstance, ability_comp: Node) -> void:
 	pass
 
 ## [子类可重写] 技能遗忘时的处理
+## 角色在执行栈内退出时，此钩子提前调用，以保证 ability_comp 尚有效。
 func on_forgotten(ability: GameplayAbilityInstance, ability_comp: Node) -> void:
 	pass
 

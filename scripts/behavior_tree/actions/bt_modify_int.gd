@@ -1,6 +1,9 @@
 extends GAS_BTAction
 class_name GAS_BTModifyInt
 
+func get_reevaluation_safety() -> int:
+	return ReevaluationSafety.SIDE_EFFECTS
+
 enum Operation { 
 	SET,                ## 设置为指定值
 	ADD,                ## 增加指定值
