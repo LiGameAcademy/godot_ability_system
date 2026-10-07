@@ -61,17 +61,19 @@ func _build_default_behavior_tree(include_cooldown: bool = true, include_cost: b
 		wait.node_id = "pre_cast_delay"
 		nodes.append(wait)
 
-	# 3. 提交冷却 (前摇结束后进CD)
-	if include_cooldown and cooldown_duration > 0.0:
-		var commit_cd = AbilityNodeCommitCooldown.new()
-		commit_cd.node_id = "commit_cooldown"
-		nodes.append(commit_cd)
-
-	# 4. 应用消耗
-	if include_cost and not costs.is_empty():
-		var commit_cost = AbilityNodeCommitCost.new()
-		commit_cost.node_id = "commit_cost"
-		nodes.append(commit_cost)
+	# 3. 前摇结束后统一提交：费用失败时不进入冷却。
+	var has_cost: bool = not costs.is_empty()
+	var has_cooldown: bool = cooldown_duration > 0.0
+	for feature: GameplayAbilityFeature in features:
+		if is_instance_valid(feature):
+			has_cost = has_cost or feature.feature_name == "CostFeature"
+			has_cooldown = has_cooldown or feature.feature_name == "CooldownFeature"
+	if (include_cooldown and has_cooldown) or (include_cost and has_cost):
+		var commit: AbilityNodeCommit = AbilityNodeCommit.new()
+		commit.pay_cost = include_cost
+		commit.start_cooldown = include_cooldown
+		commit.node_id = "commit"
+		nodes.append(commit)
 	
 	# 5. 查找目标
 	if is_instance_valid(targeting_strategy):

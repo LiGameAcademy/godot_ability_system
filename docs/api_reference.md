@@ -273,6 +273,18 @@
 
 检查是否可以激活。
 
+##### `try_commit(context: Dictionary = {}, pay_cost: bool = true, start_cooldown: bool = true, cost_name: String = "CostFeature", cooldown_name: String = "CooldownFeature") -> bool`
+
+提交当前执行的费用和冷却。默认使用本轮 context，可通过传入参数覆盖；需要分阶段时关闭一项。
+内置 Vital 付款失败时不进入冷却；同一执行中重复提交已完成阶段不会重复付款或重启冷却。
+成功提交后取消不自动退款。旧外部支付钩子与冷却组合提交暂不支持。
+详见[费用与提交说明](cost_payments.md)。
+
+##### `get_commit_state() -> Dictionary`
+
+返回本轮已完成的 `costs`、`cooldowns` 阶段名称数组的副本。
+免费或跳过费用也算阶段完成；该记录不代表技能命中或执行成功。
+
 ##### `cancel() -> void`
 
 取消技能。
@@ -437,9 +449,18 @@
 
 ---
 
+### AbilityNodeCommit
+
+统一提交节点。默认一起提交内置 Vital 费用和冷却；`pay_cost`、`start_cooldown` 可关闭一项。
+使用 `cost_feature_name`、`cooldown_feature_name` 指定实际注册名称。
+
+**参考：** [`ability_node_commit.gd`](../scripts/abilities/ability_nodes/ability_node_commit.gd)
+
+---
+
 ### AbilityNodeCommitCost
 
-提交消耗节点。提交技能的资源消耗（在技能确认释放时）。
+旧费用节点，适配统一入口，仅提交费用阶段。同一执行中再次进入不重复付款。
 
 **参考：** [`ability_node_commit_cost.gd`](../scripts/abilities/ability_nodes/ability_node_commit_cost.gd)
 
@@ -447,7 +468,8 @@
 
 ### AbilityNodeCommitCooldown
 
-提交冷却节点。提交技能的冷却时间。
+旧冷却节点，适配统一入口，仅提交冷却阶段。同一执行中再次进入不重启计时器。
+两个旧节点之间仍可保留阶段间隔；需要一起成功时改用 `AbilityNodeCommit`。
 
 **参考：** [`ability_node_commit_cooldown.gd`](../scripts/abilities/ability_nodes/ability_node_commit_cooldown.gd)
 

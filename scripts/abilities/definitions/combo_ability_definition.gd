@@ -242,6 +242,9 @@ func _build_combo_tree() -> GAS_BTNode:
 func _remove_cooldown_nodes(node: GAS_BTNode) -> void:
 	if not is_instance_valid(node):
 		return
+	if node is AbilityNodeCommit:
+		# 段树已经复制；统一节点在连击段中同样不得提前进入冷却。
+		(node as AbilityNodeCommit).start_cooldown = false
 
 	# 如果是组合节点，递归处理子节点
 	if node is GAS_BTComposite:

@@ -12,6 +12,7 @@ var _feature_storage: Dictionary[String, Dictionary] = {}
 var _bt_instance : GAS_BTInstance = null
 var _blackboard: GAS_BTBlackboard = null
 var _preview_strategy: AbilityPreviewStrategy = null
+var _commit: AbilityCommit = AbilityCommit.new()
 
 # 【核心状态】技能是否正在执行（行为树是否在跑）
 var is_active: bool = false
@@ -55,7 +56,7 @@ func get_definition() -> GameplayAbilityDefinition:
 
 ## 尝试激活技能 (由 Player/Component 调用)
 func try_activate(context: Dictionary = {}) -> bool:
-	if disabled or _is_disposed or _is_finalizing or _is_starting or not is_instance_valid(_bt_instance):
+	if disabled or _is_disposed or _is_finalizing or _is_starting or _commit.is_in_progress() or not is_instance_valid(_bt_instance):
 		return false
 	context = _make_activation_context(context)
 	if is_active:
@@ -92,6 +93,7 @@ func try_activate(context: Dictionary = {}) -> bool:
 
 	# 先占有本轮执行；初始化和收尾期间拒绝重入，避免半初始化状态被执行。
 	_execution_id += 1
+	_commit.reset()
 	is_active = true
 	_is_starting = true
 	if is_instance_valid(_blackboard):
@@ -122,7 +124,7 @@ func _is_current_execution(generation: int) -> bool:
 
 # 每帧更新（用于需要持续更新的技能，如连击计时器、引导技能）
 func update(delta: float) -> void:
-	if _is_disposed or _is_finalizing or _is_starting or _is_ticking_tree:
+	if _is_disposed or _is_finalizing or _is_starting or _is_ticking_tree or _commit.is_in_progress():
 		return
 	var generation: int = _execution_id
 	# 调用所有特性的 update（通用钩子，对所有技能类型有效）
@@ -172,9 +174,22 @@ func _request_finish(status: int, reason: int, context: Dictionary) -> bool:
 	_pending_end_context.merge(context.duplicate(true), true)
 	_pending_end_context["end_reason"] = reason
 	_has_pending_finish = true
-	if not _is_ticking_tree and not _is_starting:
+	if not _is_ticking_tree and not _is_starting and not _commit.is_in_progress():
 		_complete_finish()
 	return true
+
+## 本轮执行的权威提交入口。成功后的取消不自动退款，提交记录保留到下次激活。
+func try_commit(context: Dictionary = {}, pay_cost: bool = true, start_cooldown: bool = true, cost_name: String = "CostFeature", cooldown_name: String = "CooldownFeature") -> bool:
+	var stored: Variant = _blackboard.get_var("context", {})
+	var request: Dictionary = stored.duplicate(true) if stored is Dictionary else {}
+	request.merge(context.duplicate(true), true)
+	var success: bool = _commit.try_commit(self, request, pay_cost, start_cooldown, cost_name, cooldown_name)
+	if _has_pending_finish and not _is_ticking_tree and not _is_starting and not _commit.is_in_progress():
+		_complete_finish()
+	return success
+
+func get_commit_state() -> Dictionary:
+	return _commit.get_state()
 
 func _complete_finish() -> void:
 	var status: int = _pending_end_status
@@ -284,6 +299,13 @@ func remove_feature(feature_name : StringName) -> bool:
 func get_feature(feature_name: String) -> GameplayAbilityFeature:
 	return _features.get(feature_name, null)
 
+## 以实际注册键查找 Feature，支持旧自定义提交节点使用别名。
+func find_feature_name(feature: GameplayAbilityFeature) -> String:
+	for feature_name: String in _features:
+		if _features[feature_name] == feature:
+			return feature_name
+	return ""
+
 ## 是否存在特性
 func has_feature(feature_name: String) -> bool:
 	return _features.has(feature_name)
@@ -330,14 +352,15 @@ func get_feature_data(feature_name: String, key: String, default: Variant = null
 	var storage: Dictionary = _feature_storage.get(feature_name, {})
 	return storage.get(key, default)
 
-func set_feature_data(feature_name: String, key: String, value: Variant) -> void:
+func set_feature_data(feature_name: String, key: String, value: Variant, notify: bool = true) -> void:
 	if not _feature_storage.has(feature_name):
 		_feature_storage[feature_name] = {}
 	var storage: Dictionary = _feature_storage[feature_name]
 	if storage.has(key) and storage[key] == value:
 		return
 	storage[key] = value
-	ability_data_changed.emit(self)
+	if notify:
+		ability_data_changed.emit(self)
 
 #endregion
 
