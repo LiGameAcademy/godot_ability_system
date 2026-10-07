@@ -1,51 +1,40 @@
 extends GameplayAbilityFeature
 class_name CostFeature
 
+const BUILTIN_VITAL_COST: Script = preload("../costs/vital_cost.gd")
+
 @export_group("Cost Settings")
-## 技能消耗器数组（支持多种消耗类型）
+## 内置 Vital 费用一起结算；单个旧自定义费用保留原支付入口。
 @export var costs: Array[AbilityCostBase] = []
 
 func _init() -> void:
 	super("CostFeature")
 
-#func on_activate(ability: GameplayAbilityInstance, context: Dictionary) -> void:
-	#try_pay(ability, context)
+func can_activate(_ability_instance: GameplayAbilityInstance, context: Dictionary) -> bool:
+	return _pay(context, true)
 
-func can_activate(ability_instance: GameplayAbilityInstance, context: Dictionary) -> bool:
-	if context.get("skip_cost", false):
+func try_pay(_ability_instance: GameplayAbilityInstance, context: Dictionary) -> bool:
+	return _pay(context, false)
+
+func _pay(context: Dictionary, check_only: bool) -> bool:
+	if context.get("skip_cost", false) or costs.is_empty():
 		return true
-	
-	var ability_comp = context.get("ability_component", null)
-	var instigator = context.get("instigator", null)
-
-	if not is_instance_valid(ability_comp) or not is_instance_valid(instigator):
-		push_warning("can not found ability_component or instigator")
+	var component_value: Variant = context.get("ability_component")
+	var instigator_value: Variant = context.get("instigator")
+	if not component_value is Node or not instigator_value is Node:
 		return false
-
-	# 检查是否可以支付所有消耗
-	for cost in costs:
-		if not is_instance_valid(cost):
-			continue
-		if not cost.can_pay(ability_comp, instigator):
-			return false
-
-	return true
-
-func try_pay(ability_instance: GameplayAbilityInstance, context: Dictionary) -> bool:
-	if context.get("skip_cost", false):
-		return true
-	
-	var ability_comp = context.get("ability_component", null)
-	var instigator = context.get("instigator", null)
-	if not is_instance_valid(ability_comp) or not is_instance_valid(instigator):
-		push_warning("can not found ability_component or instigator")
+	var component: Node = component_value as Node
+	var instigator: Node = instigator_value as Node
+	if not is_instance_valid(component) or not is_instance_valid(instigator):
 		return false
-
-	# 遍历所有消耗器，检查并消耗资源
-	for cost in costs:
+	for cost: AbilityCostBase in costs:
 		if not is_instance_valid(cost):
-			continue
-		# 尝试支付消耗
-		if not cost.try_pay(ability_comp, instigator):
 			return false
-	return true
+		# 子类可能覆盖付款钩子，不能把它当作普通 VitalCost 绕过执行。
+		if cost.get_script() != BUILTIN_VITAL_COST:
+			if costs.size() != 1:
+				push_warning("CostFeature: multiple or mixed custom costs require a prepared payment contract")
+				return false
+			return cost.can_pay(component, instigator) if check_only else cost.try_pay(component, instigator)
+	var batch: VitalCostBatch = VitalCostBatch.new(costs, instigator)
+	return batch.valid if check_only else batch.try_pay()
