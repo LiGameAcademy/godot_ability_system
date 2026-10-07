@@ -94,13 +94,13 @@ func _apply_result(target: Node, instigator: Node, context: Dictionary) -> Gamep
 `GameplayStatusInstance.apply_effects()` 返回本批次结果快照，`get_last_effect_results()` 读取最近批次。
 GE_ApplyStatus 同时报告状态创建和初次效果的结果；创建了状态但其效果失败时返回 PARTIAL。
 重复状态被优先级拒绝是 FILTERED，堆叠/刷新没有实际变化是 NO_CHANGE。
-堆叠撤销与重建的应用归属继续在 #36 处理，本次不改变旧 source_id 批量移除规则。
+持续属性修正使用独立 application 句柄，状态保存并更新这些句柄；详见[应用归属与迁移](effect_applications.md)。
 
 位移效果每次从目标和 context 计算方向，不在共享 Resource 中缓存上一次方向。
 需要锁定方向时，在技能实例的 context 中保存固定 `direction`（CUSTOM）或 `facing_angle`（FORWARD）。
 生成魔法场可显式传 `spawn_parent`；未传时仍尝试施法者当前场景。
 
-本次结果契约不承诺复合效果的整体回滚。独立的持续效果应用句柄和只撤销本次应用的能力由 #36 实现。
+结果契约不承诺复合效果整体回滚。application 仅撤销可撤销的部分，伤害等已发生的操作保留。
 
 ## 验证
 

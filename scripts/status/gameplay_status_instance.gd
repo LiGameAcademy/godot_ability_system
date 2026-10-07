@@ -20,6 +20,9 @@ var _cue_instance: GameplayCue = null  ## 保存克隆的 Cue 实例（用于停
 
 var _feature_storage: Dictionary = {}  # 存储 Feature 的运行时数据
 var _last_effect_results: Array[GameplayEffectResult] = []
+var _applications: Array[GameplayEffectApplication] = []
+var _applied: bool = false
+var _removed: bool = false
 
 ## 状态完成信号（瞬时状态立即完成，持续状态在移除时完成）发出此信号
 signal status_completed(status_instance: GameplayStatusInstance)
@@ -32,6 +35,9 @@ func _init(gsd: GameplayStatusData, p_owner_component: GameplayStatusComponent, 
 	
 ## 状态被施加时，应用所有效果
 func apply(context: Dictionary = {}) -> void:
+	if _applied or _removed:
+		return
+	_applied = true
 	# 保存上下文（用于周期性效果和移除时效果）
 	_cached_context = context.duplicate()
 
@@ -41,11 +47,17 @@ func apply(context: Dictionary = {}) -> void:
 
 	# 应用应用时效果
 	_apply_effects(status_data.apply_effects, context)
+	if _removed:
+		return
 
 	# 应用所有的feature
 	for feature in status_data.features:
+		if _removed:
+			return
 		if is_instance_valid(feature):
 			feature.apply_feature(self, context)
+	if _removed:
+		return
 
 	# 如果是瞬时状态（duration = 0），立即移除并发出完成信号
 	if status_data.duration == 0.0:
@@ -68,14 +80,20 @@ func apply(context: Dictionary = {}) -> void:
 
 ## 状态被移除时，移除所有效果
 func remove() -> void:
+	if _removed:
+		return
+	_removed = true
 	# 1. 应用移除时效果（用于其他清理逻辑，如视觉效果、事件触发等）
-	var remove_context = _cached_context.duplicate()
+	var remove_context: Dictionary = _cached_context.duplicate()
 	remove_context["stacks"] = stacks
 	# 确保 source_id 存在（用于效果系统识别来源）
 	if not remove_context.has("source_id"):
 		remove_context["source_id"] = _get_source_instance_id()
-	_apply_effects(status_data.remove_effects, remove_context)
-	_remove_effects(status_data.apply_effects, remove_context)
+	_apply_effects(status_data.remove_effects, remove_context, false)
+	var applications: Array[GameplayEffectApplication] = _applications.duplicate()
+	_applications.clear()
+	for application: GameplayEffectApplication in applications:
+		application.revoke()
 
 	# 移除所有 Feature
 	for feature in status_data.features:
@@ -98,6 +116,8 @@ func remove() -> void:
 ## [param] delta: float 帧时间
 ## [return] bool 是否已过期（需要移除）
 func update(delta: float) -> bool:
+	if _removed:
+		return true
 	# 更新持续时间
 	if is_instance_valid(_duration_policy):
 		if _duration_policy.update(self, delta):
@@ -113,6 +133,8 @@ func update(delta: float) -> bool:
 ## 增加层数
 ## 堆叠更新持续修正；初次应用、真正移除与 Cue 不会被重放。
 func add_stack(amount: int = 1, is_refresh_duration: bool = true) -> void:
+	if _removed:
+		return
 	var new_stacks: int = mini(stacks + maxi(amount, 0), status_data.max_stacks)
 	if new_stacks > stacks:
 		stacks = new_stacks
@@ -120,26 +142,12 @@ func add_stack(amount: int = 1, is_refresh_duration: bool = true) -> void:
 	if is_refresh_duration:
 		refresh_duration()
 
-## 分两阶段更新持续修正，避免同一状态的多个修正互相移除。
+## 更新已拥有的持续应用；各句柄只调整自己的修正。
 func _refresh_stack_effects() -> void:
-	if not is_instance_valid(owner_component):
-		return
-	var target: Node = owner_component.get_parent()
-	if not is_instance_valid(target):
-		return
-	var context: Dictionary = _cached_context.duplicate()
-	context["stacks"] = stacks
-	context["source_id"] = _get_source_instance_id()
-	var effects: Array[GameplayEffect] = []
-	for template: GameplayEffect in status_data.apply_effects:
-		if is_instance_valid(template):
-			var effect: GameplayEffect = template.duplicate(true) as GameplayEffect
-			if is_instance_valid(effect):
-				effects.append(effect)
-	for effect: GameplayEffect in effects:
-		effect.update_stacks(target, instigator, context, true)
-	for effect: GameplayEffect in effects:
-		effect.update_stacks(target, instigator, context, false)
+	for application: GameplayEffectApplication in _applications.duplicate():
+		if _removed:
+			break
+		application.set_stacks(stacks)
 
 ## 处理事件（用于事件监听型效果）
 ## 此方法用于处理通过统一事件系统触发的事件
@@ -147,6 +155,8 @@ func _refresh_stack_effects() -> void:
 ## [param] context: Dictionary 事件上下文
 ## [return] bool 是否应该移除状态
 func handle_event(event_id: StringName, context: Dictionary) -> bool:
+	if _removed:
+		return false
 	# 检查状态是否应该响应这个事件
 	if not status_data.can_trigger_on_event(event_id):
 		return false
@@ -177,6 +187,8 @@ func accumulate_duration() -> void:
 
 ## 应用方法（公开）
 func apply_effects(effects: Array[GameplayEffect], context: Dictionary = {}) -> Array[GameplayEffectResult]:
+	if _removed:
+		return []
 	_apply_effects(effects, context)
 	return get_last_effect_results()
 
@@ -198,7 +210,7 @@ func has_event_listening() -> bool:
 	return false
 
 ## 应用效果
-func _apply_effects(effects: Array[GameplayEffect], context: Dictionary = {}) -> void:
+func _apply_effects(effects: Array[GameplayEffect], context: Dictionary = {}, own_applications: bool = true) -> void:
 	_last_effect_results.clear()
 	if not is_instance_valid(owner_component):
 		_last_effect_results.append(GameplayEffectResult.new(GameplayEffectResult.Status.FAILED, GameplayEffectResult.Reason.INVALID_TARGET))
@@ -225,36 +237,19 @@ func _apply_effects(effects: Array[GameplayEffect], context: Dictionary = {}) ->
 		if not is_instance_valid(effect_clone):
 			continue
 		
-		# 应用效果（瞬时操作，不存储）
+		# 保留可撤销应用；伤害等一次性操作只有结果事实。
 		if not is_instance_valid(target):
 			_last_effect_results.append(GameplayEffectResult.new(GameplayEffectResult.Status.FAILED, GameplayEffectResult.Reason.INVALID_TARGET))
 			break
-		_last_effect_results.append(effect_clone.apply(target, instigator if is_instance_valid(instigator) else null, _cached_context))
-
-## 移除效果
-func _remove_effects(effects: Array[GameplayEffect], context: Dictionary) -> void:
-	if not is_instance_valid(owner_component):
-		return
-
-	var target = owner_component.get_parent()
-	if not is_instance_valid(target):
-		return
-	
-	# 在context中添加stacks信息
-	context["stacks"] = stacks
-
-	# 应用所有的果
-	for effect_template in effects:
-		if not is_instance_valid(effect_template):
-			continue
-		
-		# 克隆效果实例（避免状态共享）
-		var effect_clone = effect_template.duplicate(true) as GameplayEffect
-		if not is_instance_valid(effect_clone):
-			continue
-		
-		# 应用效果（瞬时操作，不存储）
-		effect_clone.remove(target, instigator, context)
+		var result: GameplayEffectResult = effect_clone.apply(target, instigator if is_instance_valid(instigator) else null, _cached_context)
+		_last_effect_results.append(result)
+		if own_applications and is_instance_valid(result.application):
+			if _removed:
+				result.application.revoke()
+			else:
+				_applications.append(result.application)
+		if own_applications and _removed:
+			break
 
 ## 应用状态标签（标签系统集成）
 func _apply_status_tags() -> void:

@@ -94,8 +94,12 @@ func _check_filters(target: Node, instigator: Node, context: Dictionary) -> bool
 func _execute_cue(target: Node, context: Dictionary) -> void:
 	GameplayCueManager.execute_cue(cue, target, context)
 
-## 持续效果的撤销入口保留；独立应用归属在 #36 处理。
+## 兼容入口可传入 application；没有句柄时仅执行旧扩展的移除钩子。
 func remove(target: Node, instigator: Node, context: Dictionary = {}) -> void:
+	var application: Variant = context.get("application")
+	if application is GameplayEffectApplication:
+		(application as GameplayEffectApplication).revoke()
+		return
 	if not is_instance_valid(target):
 		return
 	_remove(target, instigator, context)
