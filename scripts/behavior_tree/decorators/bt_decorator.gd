@@ -5,9 +5,10 @@ class_name GAS_BTDecorator
 @export var child: GAS_BTNode
 
 func reset(instance: GAS_BTInstance) -> void:
-	_clear_storage(instance)
 	if is_instance_valid(child):
 		child.reset(instance)
+	super.reset(instance)
+	_clear_storage(instance)
 
 func _tick(instance: GAS_BTInstance, delta: float) -> int:
 	if not is_instance_valid(child):

@@ -1,89 +1,103 @@
 ﻿# Godot Gameplay Ability System
 
-**高内聚、低耦合的游戏技能系统插件**
+**A high-cohesion, low-coupling gameplay ability system plugin for Godot**
 
-[![Godot](https://img.shields.io/badge/Godot-4.5+-478CBF?logo=godot-engine)](https://godotengine.org/)
-[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[English](README.md) | [中文](README_zh.md)
 
-## 📖 简介
+[![Godot Engine](https://img.shields.io/badge/Godot-4.5+-478CBF?style=flat&logo=godot-engine&logoColor=white)](https://godotengine.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Plugin Version](https://img.shields.io/badge/version-0.0.1-blue.svg)](plugin.cfg)
+[![GitHub stars](https://img.shields.io/github/stars/LiGameAcademy/godot_ability_system?style=flat)](https://github.com/LiGameAcademy/godot_ability_system/stargazers)
+[![GitHub forks](https://img.shields.io/github/forks/LiGameAcademy/godot_ability_system?style=flat)](https://github.com/LiGameAcademy/godot_ability_system/network/members)
+[![GitHub issues](https://img.shields.io/github/issues/LiGameAcademy/godot_ability_system)](https://github.com/LiGameAcademy/godot_ability_system/issues)
+[![GitHub last commit](https://img.shields.io/github/last-commit/LiGameAcademy/godot_ability_system)](https://github.com/LiGameAcademy/godot_ability_system/commits)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/LiGameAcademy/godot_ability_system/pulls)
 
-Godot Gameplay Ability System 是一个功能完整、架构优雅的游戏技能系统插件，专为 Godot 4.5+ 设计。该系统采用**数据驱动**、**组件化**、**解耦合**、**可扩展**的设计理念，为游戏开发者提供了一个强大而灵活的技能系统框架。
+<p align="center">
+  <a href="https://godotengine.org/">
+    <img src="https://godotengine.org/assets/press/logo_large_color_dark.png" alt="Made with Godot" width="200">
+  </a>
+</p>
 
-本系统参考了 Unreal Engine 的 Gameplay Ability System (GAS) 设计思想，并结合 Godot 引擎的特性进行了优化和适配，适用于 ARPG、RTS、MOBA 等多种游戏类型。
+## Introduction
 
-## ✨ 核心特性
+Godot Gameplay Ability System is a feature-complete, well-architected ability system plugin designed for Godot 4.5+. It follows a **data-driven**, **component-based**, **decoupled**, and **extensible** design philosophy, giving developers a powerful and flexible framework for building ability systems.
 
-### 🎯 数据驱动设计
-- 所有技能、状态、效果均通过资源文件配置
-- 无需编写代码即可创建复杂的技能逻辑
-- 支持运行时动态加载和修改
+Inspired by Unreal Engine's Gameplay Ability System (GAS) and adapted to Godot's strengths, it works well for ARPG, RTS, MOBA, and many other genres.
 
-### 🧩 组件化架构
-- **GameplayAbilityComponent**: 技能容器，管理技能的学习、激活、冷却
-- **GameplayAttributeComponent**: 属性管理，支持属性修改器和计算
-- **GameplayStatusComponent**: 状态管理，处理 Buff/Debuff 的叠加和持续时间
-- **GameplayVitalAttributeComponent**: 资源管理（生命值、魔法值等）
+## Core Features
 
-### 🌳 行为树驱动的技能逻辑
-- 使用行为树（Behavior Tree）描述技能执行流程
-- 支持复杂的技能逻辑组合（连击、蓄力、切换等）
-- 提供丰富的节点类型（等待、条件判断、并行执行等）
+### Data-Driven Design
+- Abilities, statuses, and effects are configured via resource files
+- Build complex ability logic without writing code
+- Supports runtime loading and modification
 
-### 🔧 特性系统（Feature System）
-- 通过组合不同的特性实现技能行为
-- 内置特性：冷却、消耗、输入、切换、被动状态等
-- 易于扩展，支持自定义特性
+### Component Architecture
+- **GameplayAbilityComponent**: Ability container — learn, activate, and cooldown
+- **GameplayAttributeComponent**: Attribute management with modifiers and calculation
+- **GameplayStatusComponent**: Buff/Debuff stacking and duration handling
+- **GameplayVitalAttributeComponent**: Resource management (HP, MP, etc.)
 
-### 📊 属性系统
-- 支持属性定义、属性集、属性实例
-- 属性修改器系统（临时/永久、叠加/覆盖）
-- 可扩展属性（ScalableValue）支持成长曲线
+### Behavior-Tree-Driven Ability Logic
+- Describe ability execution flow with Behavior Trees
+- Support complex combinations (combo, charge, toggle, etc.)
+- Rich node types (wait, condition, parallel execution, etc.)
 
-### 🎭 状态系统
-- 完整的 Buff/Debuff 系统
-- 支持状态叠加策略（刷新、叠加、累计持续时间等）
-- 状态特性系统（周期性效果、事件监听等）
+### Feature System
+- Compose ability behavior by combining features
+- Built-in features: cooldown, cost, input, toggle, passive status, and more
+- Easy to extend with custom features
 
-### 🎨 效果系统
-- 丰富的游戏效果（伤害、治疗、属性修改、状态应用等）
-- 效果可以应用到属性组件、资源组件或角色实体
-- 支持效果链式组合
+### Attribute System
+- Attribute definitions, attribute sets, and attribute instances
+- Attribute modifiers (temporary/permanent, stack/override)
+- ScalableValue support for growth curves
 
-### 🏷️ 标签系统
-- 基于标签的分类和过滤机制
-- 支持技能、状态、效果的标签管理
-- 用于实现技能互斥、状态免疫等功能
+### Status System
+- Full Buff/Debuff system
+- Stacking policies (refresh, stack, accumulate duration, etc.)
+- Status features (periodic effects, event listeners, etc.)
 
-### 🎬 提示系统（Cue System）
-- 逻辑与表现分离
-- 支持粒子特效、音效、动画等视觉反馈
-- 自动管理提示的生命周期
+### Effect System
+- Rich gameplay effects (damage, heal, attribute modify, apply status, etc.)
+- Effects can target attribute components, vital components, or character entities
+- Supports effect chaining
 
-## 🚀 快速开始
+### Tag System
+- Tag-based classification and filtering
+- Tag management for abilities, statuses, and effects
+- Enables ability mutual exclusion, status immunity, and more
 
-### 安装
+### Cue System
+- Separates logic from presentation
+- Supports particles, audio, animation, and other visual feedback
+- Automatically manages cue lifecycle
 
-#### 方法一：Git 子模块（推荐）
+## Quick Start
+
+### Installation
+
+#### Option 1: Git Submodule (Recommended)
 
 ```bash
 git submodule add https://github.com/LiGameAcademy/godot_ability_system.git addons/godot_ability_system
 ```
 
-#### 方法二：直接克隆
+#### Option 2: Clone Directly
 
 ```bash
 git clone https://github.com/LiGameAcademy/godot_ability_system.git addons/godot_ability_system
 ```
 
-### 启用插件
+### Enable the Plugin
 
-1. 打开 Godot 编辑器
-2. 进入 `项目 -> 项目设置 -> 插件`
-3. 找到 `gameplay_abiltiy_system` 并启用
+1. Open the Godot editor
+2. Go to `Project -> Project Settings -> Plugins`
+3. Find `gameplay_abiltiy_system` and enable it
 
-### 基本使用
+### Basic Usage
 
-#### 1. 创建角色并添加组件
+#### 1. Create a Character and Add Components
 
 ```gdscript
 extends CharacterBody2D
@@ -94,202 +108,203 @@ class_name Player
 @onready var status_component: GameplayStatusComponent = $GameplayStatusComponent
 
 func _ready() -> void:
-    # 初始化属性
-    attribute_component.initialize_attribute_set(your_attribute_set)
-    
-    # 学习技能
-    ability_component.learn_ability(your_ability_definition)
+	# Initialize attributes
+	attribute_component.initialize_attribute_set(your_attribute_set)
+
+	# Learn an ability
+	ability_component.learn_ability(your_ability_definition)
 ```
 
-#### 2. 创建技能定义
+#### 2. Create an Ability Definition
 
-在编辑器中创建 `GameplayAbilityDefinition` 资源：
+Create a `GameplayAbilityDefinition` resource in the editor:
 
-1. 右键点击资源面板 -> `新建资源`
-2. 选择 `GameplayAbilityDefinition`
-3. 配置技能属性（ID、名称、图标等）
-4. 添加特性（冷却、消耗等）
-5. 创建行为树定义技能逻辑
+1. Right-click in the FileSystem dock -> `New Resource`
+2. Select `GameplayAbilityDefinition`
+3. Configure ability properties (ID, name, icon, etc.)
+4. Add features (cooldown, cost, etc.)
+5. Create a behavior tree to define ability logic
 
-#### 3. 激活技能
+#### 3. Activate an Ability
 
 ```gdscript
-# 通过输入匹配
+# Match by input
 func _input(event: InputEvent) -> void:
-    var ability_id = ability_component.match_input(event)
-    if ability_id != "":
-        ability_component.try_activate_ability(ability_id)
+	var ability_id = ability_component.match_input(event)
+	if ability_id != "":
+		ability_component.try_activate_ability(ability_id)
 
-# 直接激活
+# Activate directly
 ability_component.try_activate_ability(&"fireball")
 ```
 
-## 📚 系统架构
+## Architecture
 
-### 核心概念
+### Core Concepts
 
 ```
-业务层 (player, enemy, npc)
-    ↓ 通过组件
-插件层
-    ├── 组件层 (Components)
+Gameplay Layer (player, enemy, npc)
+    ↓ via components
+Plugin Layer
+    ├── Component Layer
     │   ├── GameplayAbilityComponent
     │   ├── GameplayAttributeComponent
     │   ├── GameplayStatusComponent
     │   └── GameplayVitalAttributeComponent
     │
-    ├── 实例层 (Instances)
+    ├── Instance Layer
     │   ├── GameplayAbilityInstance
     │   ├── GameplayAttributeInstance
     │   └── GameplayStatusInstance
     │
-    ├── 资源层 (Resources)
+    ├── Resource Layer
     │   ├── GameplayAbilityDefinition
     │   ├── GameplayAttribute / AttributeSet
     │   ├── GameplayStatusData
     │   └── GameplayEffect
     │
-    └── 系统层 (Systems)
-        ├── GameplayAbilitySystem (单例)
-        ├── DamageCalculator (单例)
-        ├── TagManager (单例)
-        ├── AbilityEventBus (单例)
-        └── GameplayCueManager (单例)
+    └── System Layer
+        ├── GameplayAbilitySystem (singleton)
+        ├── DamageCalculator (singleton)
+        ├── TagManager (singleton)
+        ├── AbilityEventBus (singleton)
+        └── GameplayCueManager (singleton)
 ```
 
-### 数据流向
+### Data Flow
 
-1. **资源定义** → **实例化** → **运行时实例** → **组件管理** → **挂载到角色**
-2. **技能学习** → **技能激活** → **行为树执行** → **效果应用** → **状态/属性修改**
+1. **Resource Definition** → **Instantiate** → **Runtime Instance** → **Component Management** → **Attach to Character**
+2. **Learn Ability** → **Activate Ability** → **Behavior Tree Execution** → **Apply Effects** → **Modify Status/Attributes**
 
-详细架构图请参考 [docs/gameplay_ability_system.png](docs/gameplay_ability_system.png)
+For a detailed architecture diagram, see [docs/gameplay_ability_system.png](docs/gameplay_ability_system.png).
 
-## 🎮 功能模块
+## Feature Modules
 
-### 技能系统 (Ability System)
+### Ability System
 
-#### 技能特性 (Ability Feature)
+#### Ability Features
 
-- ✅ 技能冷却（Cooldown）
-- ✅ 技能消耗（Cost）
-- ✅ 技能输入（Input）
-- ✅ 技能预览（Preview）
+- ✅ Cooldown
+- ✅ Cost
+- ✅ Input
+- ✅ Preview
 
-#### 技能配置模板 (Ability Template)
+#### Ability Templates
 
-- ✅ 主动技能（Active Ability）
-- ✅ 被动技能（Passive Ability）
-- ✅ 切换技能（Toggle Ability）
-- ✅ 连击技能（Combo Ability）
-- ✅ 投射物技能（Projectile Ability）
+- ✅ Active Ability
+- ✅ Passive Ability
+- ✅ Toggle Ability
+- ✅ Combo Ability
+- ✅ Projectile Ability
 
-### 属性系统 (Attribute System)
+### Attribute System
 
-- ✅ 属性定义和配置
-- ✅ 属性集（Attribute Set）
-- ✅ 属性实例（Attribute Instance）
-- ✅ 属性修改器（Attribute Modifier）
-- ✅ 可扩展属性（ScalableValue）
-- ✅ 属性变化通知
+- ✅ Attribute definition and configuration
+- ✅ Attribute Set
+- ✅ Attribute Instance
+- ✅ Attribute Modifier
+- ✅ ScalableValue
+- ✅ Attribute change notifications
 
-### 状态系统 (Status System)
+### Status System
 
-- ✅ 状态数据定义
-- ✅ 状态实例管理
-- ✅ 状态叠加策略
-- ✅ 持续时间策略
-- ✅ 状态特性（周期性效果、事件监听）
-- ✅ 状态优先级
+- ✅ Status data definition
+- ✅ Status instance management
+- ✅ Stacking policies
+- ✅ Duration policies
+- ✅ Status features (periodic effects, event listeners)
+- ✅ Status priority
 
-### 效果系统 (Effect System)
+### Effect System
 
-- ✅ 伤害效果（Apply Damage）
-- ✅ 治疗效果（Modify Vital）
-- ✅ 属性修改效果（Attribute Modifier）
-- ✅ 状态应用效果（Apply Status）
-- ✅ 状态移除效果（Dispel Status）
-- ✅ 状态转换效果（Status Transform）
-- ✅ 魔法场生成（Spawn Magic Field）
-- ✅ 投射物生成（Spawn Projectile）
+- ✅ Apply Damage
+- ✅ Modify Vital (heal/damage resources)
+- ✅ Attribute Modifier
+- ✅ Apply Status
+- ✅ Dispel Status
+- ✅ Status Transform
+- ✅ Spawn Magic Field
+- ✅ Spawn Projectile
 
-### 行为树系统 (Behavior Tree)
+### Behavior Tree
 
-- ✅ 组合节点（Sequence、Selector、Parallel）
-- ✅ 装饰节点（Repeat、Wait、Condition）
-- ✅ 动作节点（Play Animation、Apply Cost、Commit Cooldown）
-- ✅ 等待信号节点（Wait Signal）
-- ✅ 黑板系统（Blackboard）
+- ✅ Composite nodes (Sequence, Selector, Parallel)
+- ✅ Decorator nodes (Repeat, Wait, Condition)
+- ✅ Action nodes (Play Animation, Apply Cost, Commit Cooldown)
+- ✅ Wait Signal node
+- ✅ Blackboard
 
-### 其他系统
+### Other Systems
 
-- ✅ 标签系统（Tag System）
-- ✅ 提示系统（Cue System）
-- ✅ 过滤器系统（Filter System）
-- ✅ 伤害计算系统（Damage Calculator）
-- ✅ 事件总线（Event Bus）
+- ✅ Tag System
+- ✅ Cue System
+- ✅ Filter System
+- ✅ Damage Calculator
+- ✅ Event Bus
 
-## 📖 文档
+## Documentation
 
-详细文档请参考 [docs/](docs/) 目录：
+See the [docs/](docs/) directory for detailed docs:
 
-- [系统架构文档](docs/architecture.md) - 系统整体架构和设计理念
-- [属性系统指南](docs/attribute_system.md) - 属性系统的配置和使用
-- [效果系统指南](docs/effect_system.md) - 效果系统的创建和应用
-- [状态系统指南](docs/status_system.md) - 状态系统的实现和使用
-- [行为树指南](docs/behavior_tree.md) - 行为树的使用和节点说明
-- [技能系统指南](docs/ability_system.md) - 技能系统的详细使用指南
-- [API 参考](docs/api_reference.md) - 完整的 API 文档
+- [Architecture](docs/architecture.md) — Overall architecture and design philosophy
+- [Attribute System Guide](docs/attribute_system.md) — Configuring and using attributes
+- [Effect System Guide](docs/effect_system.md) — Creating and applying effects
+- [Status System Guide](docs/status_system.md) — Implementing and using statuses
+- [Behavior Tree Guide](docs/behavior_tree.md) — Behavior trees and node reference
+- [Ability System Guide](docs/ability_system.md) — Detailed ability usage guide
+- [API Reference](docs/api_reference.md) — Full API documentation
 
-## 🎯 设计原则
+## Design Principles
 
-### 1. 数据驱动
+### 1. Data-Driven
 
-所有游戏逻辑通过资源文件配置，减少代码编写，提高开发效率。
+Configure gameplay logic through resource files to reduce boilerplate and speed up iteration.
 
-### 2. 组件化
+### 2. Component-Based
 
-采用组件模式，功能模块独立，易于组合和复用。
+Use composition so feature modules stay independent, composable, and reusable.
 
-### 3. 解耦合
+### 3. Decoupled
 
-通过接口、信号、事件总线实现系统间的解耦，降低依赖关系。
+Decouple systems via interfaces, signals, and an event bus to keep dependencies low.
 
-### 4. 可扩展
+### 4. Extensible
 
-提供丰富的扩展点，支持自定义特性、效果、节点等。
+Provide extension points for custom features, effects, nodes, and more.
 
-## 💡 使用示例
+## Examples
 
-项目包含多个示例场景，位于 `examples/` 目录：
+The project includes several example scenes under `examples/`:
 
-- `test_attribute.tscn` - 属性系统示例
-- `test_vital_system.tscn` - 资源系统示例
-- `test_status_component.tscn` - 状态系统示例
-- `test_effect_basic.tscn` - 效果系统示例
+- `test_attribute.tscn` — Attribute system example
+- `test_vital_system.tscn` — Vital/resource system example
+- `test_status_component.tscn` — Status system example
+- `test_effect_basic.tscn` — Effect system example
 
-## 🤝 贡献
+## Contributing
 
-欢迎提交 Issue 和 Pull Request！
+Issues and Pull Requests are welcome!
 
-## 📄 许可证
+## License
 
-本项目采用 [MIT 许可证](LICENSE)。
+This project is licensed under the [MIT License](LICENSE).
 
-## 👤 作者
+## Author
 
-**老李（玩物不丧志的老李）**
+**Lao Li (玩物不丧志的老李)**
 
 <a href="https://www.bilibili.com/cheese/play/ss791568227" target="_blank">
   <img src="https://archive.biliimg.com/bfs/archive/c16382c190d25495f8942cb10ce6582ed5b88c0e.jpg" alt="Bilibili Course">
 </a>
-- 课程教程：[godot4架构实战：即时战斗与技能系统篇](https://www.bilibili.com/cheese/play/ss791568227)
-- 知识星球：[老李游戏学院](https://wx.zsxq.com/group/28885154818841)
 
-## 🙏 致谢
+- Course: [Godot 4 Architecture in Practice: Real-time Combat & Ability Systems](https://www.bilibili.com/cheese/play/ss791568227)
+- Knowledge Planet: [Lao Li Game Academy](https://wx.zsxq.com/group/28885154818841)
 
-- 感谢 Unreal Engine 的 Gameplay Ability System 提供的设计灵感
-- 感谢所有贡献者和使用者的反馈
+## Acknowledgments
+
+- Thanks to Unreal Engine's Gameplay Ability System for design inspiration
+- Thanks to all contributors and users for their feedback
 
 ---
 
-**注意**: 本插件仍在积极开发中，API 可能会有变化。建议在生产环境使用前充分测试。
+**Note**: This plugin is under active development. APIs may change. Please test thoroughly before using in production.

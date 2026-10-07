@@ -327,10 +327,18 @@ func cancel_targeting() -> void:
 		_current_targeting_ability = null
 
 func try_activate_targeting_ability() -> bool:
-	if is_instance_valid(_current_targeting_ability):
-		_current_targeting_ability.try_activate_targeting()
-		return true
-	return false
+	var ability: GameplayAbilityInstance = _current_targeting_ability
+	if not is_instance_valid(ability) or not ability.is_targeting():
+		return false
+	var context: Dictionary = ability.confirm_targeting()
+	if context.is_empty():
+		return false
+	if not try_activate_ability(ability.get_definition().ability_id, context):
+		return false
+	ability.cancel_targeting()
+	if _current_targeting_ability == ability:
+		_current_targeting_ability = null
+	return true
 
 #endregion
 
