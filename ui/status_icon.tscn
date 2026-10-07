@@ -1,8 +1,7 @@
-[gd_scene load_steps=4 format=3 uid="uid://puirrf70bmsw"]
+[gd_scene load_steps=3 format=3 uid="uid://puirrf70bmsw"]
 
-[ext_resource type="Texture2D" uid="uid://dxsvj51ctgg3g" path="res://icon.svg" id="1_32sbw"]
-[ext_resource type="Script" uid="uid://dw130lxt8xr5v" path="res://addons/gameplay_abiltiy_system/ui/status_icon.gd" id="1_rr66h"]
-[ext_resource type="Theme" uid="uid://bxmd4wteaxnnk" path="res://addons/gameplay_abiltiy_system/assets/theme/theme_default.tres" id="3_rr66h"]
+[ext_resource type="Script" path="status_icon.gd" id="1_rr66h"]
+[ext_resource type="Theme" path="../assets/theme/theme_default.tres" id="3_rr66h"]
 
 [node name="StatusIcon" type="MarginContainer"]
 anchors_preset = 8
@@ -25,7 +24,6 @@ layout_mode = 2
 [node name="TextureRect" type="TextureRect" parent="."]
 unique_name_in_owner = true
 layout_mode = 2
-texture = ExtResource("1_32sbw")
 expand_mode = 1
 
 [node name="StackLabel" type="Label" parent="."]

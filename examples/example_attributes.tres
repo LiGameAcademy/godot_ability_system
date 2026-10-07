@@ -1,0 +1,57 @@
+[gd_resource type="Resource" script_class="GameplayAttributeSet" load_steps=11 format=3]
+
+[ext_resource type="Script" path="../scripts/attributes/gameplay_attribute_set.gd" id="1"]
+[ext_resource type="Script" path="../scripts/attributes/gameplay_attribute.gd" id="2"]
+
+[sub_resource type="Resource" id="strength"]
+script = ExtResource("2")
+attribute_id = &"strength"
+min_value = 0.0
+
+[sub_resource type="Resource" id="agility"]
+script = ExtResource("2")
+attribute_id = &"agility"
+min_value = 0.0
+
+[sub_resource type="Resource" id="intelligence"]
+script = ExtResource("2")
+attribute_id = &"intelligence"
+min_value = 0.0
+
+[sub_resource type="Resource" id="vitality"]
+script = ExtResource("2")
+attribute_id = &"vitality"
+min_value = 0.0
+
+[sub_resource type="Resource" id="max_health"]
+script = ExtResource("2")
+attribute_id = &"max_health"
+min_value = 0.0
+
+[sub_resource type="Resource" id="max_mana"]
+script = ExtResource("2")
+attribute_id = &"max_mana"
+min_value = 0.0
+
+[sub_resource type="Resource" id="phy_attack"]
+script = ExtResource("2")
+attribute_id = &"phy_attack"
+min_value = 0.0
+
+[sub_resource type="Resource" id="defense"]
+script = ExtResource("2")
+attribute_id = &"defense"
+min_value = 0.0
+
+[resource]
+script = ExtResource("1")
+attributes = Dictionary[ExtResource("2"), float]({
+SubResource("strength"): 10.0,
+SubResource("agility"): 10.0,
+SubResource("intelligence"): 10.0,
+SubResource("vitality"): 10.0,
+SubResource("max_health"): 300.0,
+SubResource("max_mana"): 100.0,
+SubResource("phy_attack"): 30.0,
+SubResource("defense"): 5.0
+})

@@ -1,9 +1,8 @@
-[gd_scene load_steps=5 format=3 uid="uid://d17o2epdcgt4"]
+[gd_scene load_steps=4 format=3 uid="uid://d17o2epdcgt4"]
 
-[ext_resource type="Texture2D" uid="uid://dxsvj51ctgg3g" path="res://icon.svg" id="1_fqhyj"]
-[ext_resource type="Script" uid="uid://cnh2tlk1aabyf" path="res://addons/gameplay_abiltiy_system/ui/ability_button.gd" id="1_hjnxu"]
-[ext_resource type="Material" uid="uid://cnd6cut0opag7" path="res://addons/gameplay_abiltiy_system/assets/materials/circular_progress.tres" id="2_6q6wk"]
-[ext_resource type="Theme" uid="uid://carbioq75qbhu" path="res://assets/theme/theme_main.tres" id="3_6q6wk"]
+[ext_resource type="Script" path="ability_button.gd" id="1_hjnxu"]
+[ext_resource type="Material" path="../assets/materials/circular_progress.tres" id="2_6q6wk"]
+[ext_resource type="Theme" path="../assets/theme/theme_default.tres" id="3_6q6wk"]
 
 [node name="AbilityButton" type="MarginContainer"]
 custom_minimum_size = Vector2(64, 64)
@@ -28,7 +27,6 @@ layout_mode = 2
 unique_name_in_owner = true
 layout_mode = 2
 mouse_filter = 2
-texture = ExtResource("1_fqhyj")
 expand_mode = 1
 
 [node name="CooldownOverlay" type="ColorRect" parent="."]

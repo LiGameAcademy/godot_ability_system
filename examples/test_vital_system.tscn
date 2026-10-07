@@ -1,36 +1,18 @@
-[gd_scene load_steps=17 format=3 uid="uid://c6jo3h42ewlfm"]
-
-[ext_resource type="Script" uid="uid://c8h4uoxxyl4dp" path="res://addons/gameplay_abiltiy_system/examples/test_vital_system.gd" id="1_k7qe2"]
-[ext_resource type="Script" uid="uid://bkkqftstlq2s6" path="res://addons/gameplay_abiltiy_system/scripts/attributes/gameplay_attribute_set.gd" id="2_1xoff"]
-[ext_resource type="Resource" uid="uid://ccp0144chfduo" path="res://data/attribute_sets/hero_primary_attributes.tres" id="3_24ary"]
-[ext_resource type="Script" uid="uid://cr1357dotaqah" path="res://scripts/data/damage/arpg_damage_logic.gd" id="3_juqem"]
-[ext_resource type="Resource" uid="uid://c6m5kfhl1aid0" path="res://data/attribute_sets/hero_secondary_attributes.tres" id="4_7il7b"]
-[ext_resource type="Script" uid="uid://bm4h231fb21pv" path="res://addons/gameplay_abiltiy_system/scripts/abilities/gameplay_ability_definition.gd" id="5_86x7g"]
-[ext_resource type="Script" uid="uid://bhopvoj74pcwj" path="res://addons/gameplay_abiltiy_system/scripts/components/gameplay_vital_attribute_component.gd" id="5_1844f"]
-[ext_resource type="Resource" uid="uid://dp3c4xicn4jo0" path="res://data/abilities/damage_reduction_shield_passive.tres" id="6_4rnv7"]
-[ext_resource type="Resource" uid="uid://h0khiha2ln3l" path="res://data/abilities/shield.tres" id="7_pvttd"]
-[ext_resource type="Resource" uid="uid://6gemngjv4ru5" path="res://data/abilities/sacrifice.tres" id="8_gfusm"]
-[ext_resource type="Script" uid="uid://vexvjx4r3f5b" path="res://scripts/data/player_data.gd" id="9_foih1"]
-[ext_resource type="Script" uid="uid://de4yqlfssv0xe" path="res://addons/gameplay_abiltiy_system/scripts/attributes/vitals/gameplay_vital.gd" id="10_pqd5r"]
-[ext_resource type="Resource" uid="uid://dttqbxpvo1e7d" path="res://data/vitals/health_vital.tres" id="11_sl281"]
-[ext_resource type="Resource" uid="uid://ks8eqy4dry5b" path="res://data/vitals/mana_vital.tres" id="12_sid5l"]
-
-[sub_resource type="Resource" id="Resource_wm4e8"]
-script = ExtResource("9_foih1")
-attribute_sets = Array[ExtResource("2_1xoff")]([ExtResource("3_24ary"), ExtResource("4_7il7b")])
-vitals = Array[ExtResource("10_pqd5r")]([ExtResource("11_sl281"), ExtResource("12_sid5l")])
-initial_abilities = Array[ExtResource("5_86x7g")]([ExtResource("6_4rnv7"), ExtResource("7_pvttd"), ExtResource("8_gfusm")])
-metadata/_custom_type_script = "uid://vexvjx4r3f5b"
-
-[sub_resource type="Resource" id="Resource_fu4wm"]
-script = ExtResource("3_juqem")
-metadata/_custom_type_script = "uid://cr1357dotaqah"
-
+[gd_scene load_steps=10 format=3 uid="uid://c6jo3h42ewlfm"]
+[ext_resource type="Script" path="test_vital_system.gd" id="1"]
+[ext_resource type="Script" path="../scripts/components/gameplay_vital_attribute_component.gd" id="2"]
+[ext_resource type="Script" path="../scripts/attributes/gameplay_attribute_set.gd" id="3"]
+[ext_resource type="Resource" path="example_attributes.tres" id="4"]
+[ext_resource type="Script" path="../scripts/attributes/vitals/gameplay_vital.gd" id="5"]
+[ext_resource type="Script" path="../scripts/attributes/vitals/health_vital.gd" id="6"]
+[ext_resource type="Script" path="../scripts/attributes/vitals/mana_vital.gd" id="7"]
+[sub_resource type="Resource" id="health"]
+script = ExtResource("6")
+[sub_resource type="Resource" id="mana"]
+script = ExtResource("7")
 [node name="TestVitalSystem" type="Node3D"]
-script = ExtResource("1_k7qe2")
-player_data = SubResource("Resource_wm4e8")
-damage_strategy = SubResource("Resource_fu4wm")
-
+script = ExtResource("1")
+attribute_sets = Array[ExtResource("3")]([ExtResource("4")])
+vitals = Array[ExtResource("5")]([SubResource("health"), SubResource("mana")])
 [node name="GameplayVitalAttributeComponent" type="Node" parent="."]
-script = ExtResource("5_1844f")
-metadata/_custom_type_script = "uid://bhopvoj74pcwj"
+script = ExtResource("2")

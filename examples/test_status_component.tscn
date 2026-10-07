@@ -1,32 +1,8 @@
-[gd_scene load_steps=11 format=3 uid="uid://ct68uvp3bdd4o"]
-
-[ext_resource type="Script" uid="uid://yw60ya32t83" path="res://addons/gameplay_abiltiy_system/examples/test_status_component.gd" id="1_pdgbd"]
-[ext_resource type="Script" uid="uid://b6hkniyhlhrsf" path="res://addons/gameplay_abiltiy_system/scripts/components/gameplay_status_component.gd" id="2_ia0v7"]
-[ext_resource type="Script" uid="uid://bhopvoj74pcwj" path="res://addons/gameplay_abiltiy_system/scripts/components/gameplay_vital_attribute_component.gd" id="3_20bi1"]
-[ext_resource type="Script" uid="uid://de4yqlfssv0xe" path="res://addons/gameplay_abiltiy_system/scripts/attributes/vitals/gameplay_vital.gd" id="4_43duu"]
-[ext_resource type="Script" uid="uid://b6k2lmhsmbn2c" path="res://addons/gameplay_abiltiy_system/scripts/attributes/vitals/health_vital.gd" id="5_77yvt"]
-[ext_resource type="Script" uid="uid://bkkqftstlq2s6" path="res://addons/gameplay_abiltiy_system/scripts/attributes/gameplay_attribute_set.gd" id="6_s52a0"]
-[ext_resource type="Script" uid="uid://dj0iwc88r8noi" path="res://addons/gameplay_abiltiy_system/scripts/attributes/gameplay_attribute.gd" id="7_toahk"]
-[ext_resource type="Script" uid="uid://dd5tuhga1jg51" path="res://addons/gameplay_abiltiy_system/scripts/utilties/scalable_value.gd" id="8_43duu"]
-
-[sub_resource type="Resource" id="Resource_77yvt"]
-script = ExtResource("5_77yvt")
-metadata/_custom_type_script = "uid://b6k2lmhsmbn2c"
-
-[sub_resource type="Resource" id="Resource_s52a0"]
-script = ExtResource("6_s52a0")
-metadata/_custom_type_script = "uid://bkkqftstlq2s6"
-
+[gd_scene load_steps=3 format=3 uid="uid://ct68uvp3bdd4o"]
+[ext_resource type="Script" path="test_status_component.gd" id="1"]
+[ext_resource type="Script" path="../scripts/components/gameplay_status_component.gd" id="2"]
 [node name="TestStatusComponent" type="Node3D"]
-script = ExtResource("1_pdgbd")
-
+script = ExtResource("1")
 [node name="GameplayStatusComponent" type="Node" parent="."]
 unique_name_in_owner = true
-script = ExtResource("2_ia0v7")
-metadata/_custom_type_script = "uid://b6hkniyhlhrsf"
-
-[node name="GameplayVitalAttributeComponent" type="Node" parent="."]
-script = ExtResource("3_20bi1")
-_vitals = Array[ExtResource("4_43duu")]([SubResource("Resource_77yvt")])
-_active_sets = Array[ExtResource("6_s52a0")]([SubResource("Resource_s52a0")])
-metadata/_custom_type_script = "uid://bhopvoj74pcwj"
+script = ExtResource("2")

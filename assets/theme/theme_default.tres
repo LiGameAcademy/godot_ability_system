@@ -1,11 +1,8 @@
-[gd_resource type="Theme" load_steps=2 format=3 uid="uid://bxmd4wteaxnnk"]
+[gd_resource type="Theme" load_steps=1 format=3 uid="uid://bxmd4wteaxnnk"]
 
-[ext_resource type="FontFile" uid="uid://dcjjl15uh5mv4" path="res://assets/fonts/Zfull-GB.ttf" id="1_vlbcr"]
 
 [resource]
 Button/colors/font_outline_color = Color(0, 0, 0, 1)
 Button/constants/outline_size = 5
-Button/fonts/font = ExtResource("1_vlbcr")
 Label/colors/font_outline_color = Color(0, 0, 0, 1)
 Label/constants/outline_size = 5
-Label/fonts/font = ExtResource("1_vlbcr")
