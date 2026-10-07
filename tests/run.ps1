@@ -52,6 +52,6 @@ if (-not $SkipImport) {
     throw 'SkipImport requires a previously imported regression host.'
 }
 & $Godot --headless --path $hostPath --script res://tests/runner.gd -- @Cases 2>&1 | Tee-Object -Variable testOutput
-if ($LASTEXITCODE -ne 0 -or ($testOutput -match 'SCRIPT ERROR|Parse Error|Failed to load script')) {
+if ($LASTEXITCODE -ne 0 -or ($testOutput -match 'SCRIPT ERROR|Parse Error|Failed to load script|freed or unreferenced while a signal')) {
     throw "Regression tests failed ($LASTEXITCODE)."
 }

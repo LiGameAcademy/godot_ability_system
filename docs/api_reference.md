@@ -285,6 +285,21 @@
 返回本轮已完成的 `costs`、`cooldowns` 阶段名称数组的副本。
 免费或跳过费用也算阶段完成；该记录不代表技能命中或执行成功。
 
+##### `check_activation(context: Dictionary = {}) -> AbilityResult`
+
+只读查询资格，返回 READY / REJECTED 及失败原因，不开始执行。
+
+##### `try_activate_result(context: Dictionary = {}) -> AbilityResult`
+
+区分 STARTED（新执行）、INPUT_RECEIVED（当前执行的输入）与 REJECTED。
+旧 try_activate 返回 bool 的语义保留。
+
+##### `get_execution_result() -> AbilityResult` / `get_last_execution_result() -> AbilityResult`
+
+读取本轮执行或最近终结的快照，包含 execution_id、失败原因和费用/冷却阶段记录。
+局部 ability_finished(result: AbilityResult) 信号携带结束那一轮的快照。
+流程完成不等于命中；效果结果还需后续实现。详见[技能结果说明](ability_results.md)。
+
 ##### `cancel() -> void`
 
 取消技能。

@@ -180,10 +180,11 @@ func _test_actor_isolation_and_owner_exit() -> void:
 	feature.costs = [mana, shared]
 	definition = ActiveAbilityDefinition.new()
 	definition.features = [feature]
+	definition.cooldown_duration = 5.0
 	definition.execution_tree = RegressionBTProbe.new()
 	var ability: GameplayAbilityInstance = definition.create_instance(actor)
 	ability.try_activate({"instigator": actor, "ability_component": actor})
-	vitals.vital_value_changed.connect(func(_id: StringName, _value: float, _max: float, _percent: float, _regen: bool) -> void: actor.free())
+	ability.ability_data_changed.connect(func(_current: GameplayAbilityInstance) -> void: actor.free())
 	expect(ability.try_commit(), "Target exit during notifications must not undo completed payment")
 	expect(not is_instance_valid(actor), "Custom notification must tolerate its target being freed by an earlier notification")
 	ability.dispose()

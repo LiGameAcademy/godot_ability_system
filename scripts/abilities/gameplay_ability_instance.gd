@@ -13,6 +13,7 @@ var _bt_instance : GAS_BTInstance = null
 var _blackboard: GAS_BTBlackboard = null
 var _preview_strategy: AbilityPreviewStrategy = null
 var _commit: AbilityCommit = AbilityCommit.new()
+var _results: AbilityResultHistory = AbilityResultHistory.new()
 
 # 【核心状态】技能是否正在执行（行为树是否在跑）
 var is_active: bool = false
@@ -32,6 +33,8 @@ var _pending_end_context: Dictionary = {}
 
 ## 技能完成信号
 signal ability_completed(success: bool)
+## 一轮执行收尾后的独立快照；execution_id 可区分完成回调中重启的新一轮。
+signal ability_finished(result: AbilityResult)
 ## 技能数据改变
 signal ability_data_changed(ability: GameplayAbilityInstance)
 
@@ -56,11 +59,17 @@ func get_definition() -> GameplayAbilityDefinition:
 
 ## 尝试激活技能 (由 Player/Component 调用)
 func try_activate(context: Dictionary = {}) -> bool:
-	if disabled or _is_disposed or _is_finalizing or _is_starting or _commit.is_in_progress() or not is_instance_valid(_bt_instance):
-		return false
+	return try_activate_result(context).is_accepted()
+
+## STARTED 是新执行，INPUT_RECEIVED 仅表示当前执行接收到输入。
+func try_activate_result(context: Dictionary = {}) -> AbilityResult:
+	var blocked: AbilityResult.FailureReason = _activation_block()
+	if blocked != AbilityResult.FailureReason.NONE:
+		return AbilityResult.new(AbilityResult.Status.REJECTED, blocked, _execution_id)
 	context = _make_activation_context(context)
 	if is_active:
 		var generation: int = _execution_id
+		var input_result: AbilityResult = AbilityResult.new(AbilityResult.Status.INPUT_RECEIVED, AbilityResult.FailureReason.NONE, generation)
 		# 如果技能已激活，无论是否允许重新激活，都应该处理连击输入
 		# 触发信号，确保 GAS_BTWaitSignal 能够收到通知（用于连击系统）
 		var current_value: bool = _blackboard.get_var("event_input_received", false)
@@ -70,30 +79,33 @@ func try_activate(context: Dictionary = {}) -> bool:
 			# 如果已经是 true，先设置为 false 再设置为 true，确保触发信号
 			_blackboard.set_var("event_input_received", false)
 			if not _is_current_execution(generation):
-				return true
+				return input_result
 			_blackboard.set_var("event_input_received", true)
 		if not _is_current_execution(generation):
-			return true
+			return input_result
 
 		# 检查所有特性的 can_activate
 		# 某些特性（如 ToggleFeature）可能允许在已激活时重新激活
 		if not _can_activate_request(context):
-			return true
+			return input_result
 		
 		# 有特性允许重新激活，注入上下文数据并调用 on_activate
 		if is_instance_valid(_blackboard):
 			_blackboard.set_var("context", context)
 
 		_activate_features(context, generation)
-		return true
+		return input_result
 
 	# 1. 检查能不能放 (Cost, CD, Tags, Features)
-	if not _can_activate_request(context):
-		return false
+	var qualification: AbilityResult = _check_activation_request(context)
+	if qualification.status != AbilityResult.Status.READY:
+		return qualification
 
 	# 先占有本轮执行；初始化和收尾期间拒绝重入，避免半初始化状态被执行。
 	_execution_id += 1
 	_commit.reset()
+	_results.start(_execution_id)
+	var started: AbilityResult = AbilityResult.new(AbilityResult.Status.STARTED, AbilityResult.FailureReason.NONE, _execution_id)
 	is_active = true
 	_is_starting = true
 	if is_instance_valid(_blackboard):
@@ -110,7 +122,7 @@ func try_activate(context: Dictionary = {}) -> bool:
 		_complete_finish()
 	else:
 		_activate_features(context, _execution_id)
-	return true
+	return started
 
 func _activate_features(context: Dictionary, generation: int) -> void:
 	for feature: GameplayAbilityFeature in _features.values():
@@ -168,6 +180,7 @@ func _request_finish(status: int, reason: int, context: Dictionary) -> bool:
 	is_active = false
 	_is_finalizing = true
 	_last_end_reason = reason
+	_results.begin_finish()
 	_pending_end_status = status
 	var stored_context: Variant = _blackboard.get_var("context", {})
 	_pending_end_context = stored_context.duplicate(true) if stored_context is Dictionary else {}
@@ -184,12 +197,19 @@ func try_commit(context: Dictionary = {}, pay_cost: bool = true, start_cooldown:
 	var request: Dictionary = stored.duplicate(true) if stored is Dictionary else {}
 	request.merge(context.duplicate(true), true)
 	var success: bool = _commit.try_commit(self, request, pay_cost, start_cooldown, cost_name, cooldown_name)
+	_results.record_commit(_commit.failure_reason, _commit.failure_feature)
 	if _has_pending_finish and not _is_ticking_tree and not _is_starting and not _commit.is_in_progress():
 		_complete_finish()
 	return success
 
 func get_commit_state() -> Dictionary:
 	return _commit.get_state()
+
+func get_execution_result() -> AbilityResult:
+	return _results.get_current(get_commit_state())
+
+func get_last_execution_result() -> AbilityResult:
+	return _results.get_last_finished()
 
 func _complete_finish() -> void:
 	var status: int = _pending_end_status
@@ -208,8 +228,17 @@ func _complete_finish() -> void:
 	_blackboard.clear()
 	if _is_disposed:
 		_finalize_disposal()
+	var outcomes: Dictionary[int, AbilityResult.Status] = {
+		EndReason.COMPLETED: AbilityResult.Status.COMPLETED,
+		EndReason.FAILED: AbilityResult.Status.FAILED,
+		EndReason.CANCELLED: AbilityResult.Status.CANCELLED,
+		EndReason.FORGOTTEN: AbilityResult.Status.FORGOTTEN,
+		EndReason.OWNER_EXIT: AbilityResult.Status.OWNER_EXIT,
+	}
+	var result: AbilityResult = _results.finish(outcomes.get(_last_end_reason, AbilityResult.Status.FAILED), get_commit_state())
 	_is_finalizing = false
 	ability_completed.emit(status == GAS_BTNode.Status.SUCCESS)
+	ability_finished.emit(result)
 
 ## 遗忘和角色退出均释放实例；旧引用可以读取结束原因，不能再次激活。
 func dispose(ability_comp: Node = null, reason: int = EndReason.FORGOTTEN) -> void:
@@ -255,9 +284,24 @@ func _finalize_disposal() -> void:
 
 ## 检查是否可以施法
 func can_activate(context: Dictionary = {}) -> bool:
-	if disabled or _is_disposed or _is_finalizing or _is_starting or not is_instance_valid(_bt_instance):
-		return false
-	return _can_activate_request(_make_activation_context(context))
+	return check_activation(context).status == AbilityResult.Status.READY
+
+func check_activation(context: Dictionary = {}) -> AbilityResult:
+	var blocked: AbilityResult.FailureReason = _activation_block()
+	if blocked != AbilityResult.FailureReason.NONE:
+		return AbilityResult.new(AbilityResult.Status.REJECTED, blocked, _execution_id)
+	return _check_activation_request(_make_activation_context(context))
+
+func _activation_block() -> AbilityResult.FailureReason:
+	if disabled:
+		return AbilityResult.FailureReason.DISABLED
+	if _is_disposed:
+		return AbilityResult.FailureReason.DISPOSED
+	if _is_finalizing or _is_starting or _commit.is_in_progress():
+		return AbilityResult.FailureReason.BUSY
+	if not is_instance_valid(_bt_instance):
+		return AbilityResult.FailureReason.INVALID_CONFIGURATION
+	return AbilityResult.FailureReason.NONE
 
 ## 查询和执行都先解析输入意图，副本只用于本次请求。
 func _make_activation_context(context: Dictionary) -> Dictionary:
@@ -268,15 +312,23 @@ func _make_activation_context(context: Dictionary) -> Dictionary:
 	return request
 
 func _can_activate_request(request: Dictionary) -> bool:
+	return _check_activation_request(request).status == AbilityResult.Status.READY
+
+func _check_activation_request(request: Dictionary) -> AbilityResult:
 	if disabled:
-		return false
+		return AbilityResult.new(AbilityResult.Status.REJECTED, AbilityResult.FailureReason.DISABLED, _execution_id)
 	for feature: GameplayAbilityFeature in _features.values():
 		if not is_instance_valid(feature):
 			continue
 		# 隔离旧扩展对 Dictionary 的写入，避免污染其他检查或执行输入。
 		if not feature.can_activate(self, request.duplicate(true)):
-			return false
-	return true
+			var reason: AbilityResult.FailureReason = AbilityResult.FailureReason.FEATURE_BLOCKED
+			if feature is CostFeature:
+				reason = AbilityResult.FailureReason.COST
+			elif feature is CooldownFeature:
+				reason = AbilityResult.FailureReason.COOLDOWN
+			return AbilityResult.new(AbilityResult.Status.REJECTED, reason, _execution_id, find_feature_name(feature))
+	return AbilityResult.new(AbilityResult.Status.READY, AbilityResult.FailureReason.NONE, _execution_id)
 
 #region ========== 特性管理 ==========
 ## 添加特性
