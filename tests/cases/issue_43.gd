@@ -197,6 +197,10 @@ func _test_status_and_other_builtins() -> void:
 	var data: GameplayStatusData = GameplayStatusData.new()
 	data.status_id = &"issue_43.status"
 	data.tags = [&"issue_43.dispel"]
+	if not TagManager.is_tag_registered(data.tags[0]):
+		var tag: GameplayTag = GameplayTag.new()
+		tag.id = data.tags[0]
+		TagManager.register_tag(tag)
 	data.duration = 10.0
 	var effect: GE_ApplyStatus = GE_ApplyStatus.new()
 	var result: GameplayEffectResult = effect.apply(actor, actor, {"status_data": data, "status_stacks": 1})

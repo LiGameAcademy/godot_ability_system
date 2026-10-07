@@ -537,17 +537,27 @@
 
 #### 方法
 
-##### `has_tag(entity: Node, tag: StringName) -> bool`
+##### `has_tag(entity: Node, tag: StringName, include_inherited: bool = true) -> bool`
 
 检查实体是否有标签。
 
-##### `add_tag(entity: Node, tag: StringName) -> void`
+##### `add_tag(entity: Node, tag: StringName, source_id: StringName = &"") -> bool`
 
-添加标签。
+添加该来源的一次标签计数；未注册、无效或互斥时返回 `false`，保留已有来源。
 
-##### `remove_tag(entity: Node, tag: StringName) -> void`
+##### `remove_tag(entity: Node, tag: StringName, source_id: StringName = &"") -> bool`
 
-移除标签。
+减少该来源的一次计数。不存在的来源返回 `false`，不发虚假移除事件。
+
+##### `remove_source(entity: Node, source_id: StringName) -> bool`
+
+释放此来源的全部标签与计数，保留其他来源。标签通知回调内的请求会排队，在当前调用结束前清理。
+
+##### `can_add_tags(entity: Node, tags: Array[StringName], ignored_sources: Array[StringName] = []) -> bool`
+
+只读检查标签配置和互斥关系；不创建状态、不移除来源。`ignored_sources` 仅供能明确释放这些来源的拥有者预检。
+
+详见[标签来源与状态互斥](tag_sources.md)。
 
 ---
 

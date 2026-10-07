@@ -6,62 +6,91 @@ class_name GameplayStatusComponent
 
 var _active_statuses: Dictionary[StringName, GameplayStatusInstance] = {}
 var _has_event_listening_statuses: bool = false  # 是否有需要监听事件的状态
+var _exiting: bool = false
+var _replacing: bool = false
 
 signal status_applied(status_id: StringName, instance: GameplayStatusInstance)
 signal status_removed(status_id: StringName)
 signal status_stacked(status_id: StringName, new_stacks: int)
 
 func _ready() -> void:
+	_exiting = false
 	# 订阅事件总线的统一游戏事件（统一管理，只连接一次）
 	if not AbilityEventBus.game_event_occurred.is_connected(_on_game_event_occurred):
 		AbilityEventBus.game_event_occurred.connect(_on_game_event_occurred)
+
+func _exit_tree() -> void:
+	_exiting = true
+	if AbilityEventBus.game_event_occurred.is_connected(_on_game_event_occurred):
+		AbilityEventBus.game_event_occurred.disconnect(_on_game_event_occurred)
+	for status_id: StringName in _active_statuses.keys():
+		remove_status(status_id)
 
 func _process(delta: float) -> void:
 	# 统一更新所有状态的计时器
 	var statuses_to_remove: Array[StringName] = []
 
-	for status_id in _active_statuses.keys():
-		var instance : GameplayStatusInstance = _active_statuses.get(status_id)
+	for status_id: StringName in _active_statuses.keys():
+		var instance: GameplayStatusInstance = _active_statuses.get(status_id)
 		if not is_instance_valid(instance):
 			statuses_to_remove.append(status_id)
 			continue
 		# 调用状态的 update 方法
-		var should_remove = instance.update(delta)
+		var should_remove: bool = instance.update(delta)
 		if should_remove:
 			statuses_to_remove.append(status_id)
 
 	# 移除已过期的状态
-	for status_id in statuses_to_remove:
+	for status_id: StringName in statuses_to_remove:
 		remove_status(status_id)
 
 func apply_status(gsd: GameplayStatusData, instigator: Node, stacks: int = 1, context: Dictionary = {}) -> GameplayStatusInstance:
+	if _exiting or _replacing or not is_instance_valid(get_parent()):
+		return null
 	if not is_instance_valid(gsd):
 		push_error("GameplayStatusComponent: GameplayStatusData is not valid!")
 		return null
 	
-	var status_id: StringName = gsd.status_id
-	# 空 ID：仅执行一次性效果，不入表
-	if status_id.is_empty():
-		return _create_and_apply_new_status_instance(gsd, instigator, stacks, context)
-
-	# 1. 优先级检查
-	if not _handle_priority_for_existing_status(status_id, gsd):
+	var existing: GameplayStatusInstance = get_status(gsd.status_id) if not gsd.status_id.is_empty() else null
+	if is_instance_valid(existing) and is_instance_valid(existing.status_data):
+		if existing.status_data.priority > gsd.priority:
+			return null
+		if existing.status_data.priority == gsd.priority and _apply_stacking_for_existing_status(gsd.status_id, gsd, stacks):
+			return null
+	var removals: Array[GameplayStatusInstance] = _get_conflicting_statuses(gsd)
+	if is_instance_valid(existing) and not removals.has(existing):
+		removals.append(existing)
+	var ignored_sources: Array[StringName] = []
+	for instance: GameplayStatusInstance in removals:
+		if instance.status_data.priority > gsd.priority:
+			return null
+		ignored_sources.append(instance.get_tag_source_id())
+	# 先排除本容器将释放的来源，其他来源仍然有权阻止新增标签。
+	if gsd.duration != 0.0 and not TagManager.can_add_tags(get_parent(), gsd.tags, ignored_sources):
 		return null
-
-	# 2. 堆叠策略
-	if _apply_stacking_for_existing_status(status_id, gsd, stacks):
+	_replacing = true
+	for instance: GameplayStatusInstance in removals:
+		if get_status(instance.status_data.status_id) == instance:
+			remove_status(instance.status_data.status_id)
+		if not is_instance_valid(self):
+			return null
+	_replacing = false
+	if not is_instance_valid(get_parent()) or _exiting:
 		return null
-
-	# 3. 创建并应用新实例
+	# 移除通知里的外部修改不属于可回滚事务；再次确认新的标签仍可获得。
+	if gsd.duration != 0.0 and not TagManager.can_add_tags(get_parent(), gsd.tags):
+		return null
 	return _create_and_apply_new_status_instance(gsd, instigator, stacks, context)
 
 func remove_status(status_id: StringName) -> bool:
-	var instance = _active_statuses.get(status_id)
+	var instance: GameplayStatusInstance = _active_statuses.get(status_id)
 	if not is_instance_valid(instance): 
 		return false
 		
 	_active_statuses.erase(status_id)
 	instance.remove()
+	if not is_instance_valid(self):
+		return true
 	status_removed.emit(status_id)
 
 	# 检查是否还有需要监听事件的状态
@@ -75,13 +104,13 @@ func remove_status(status_id: StringName) -> bool:
 	return true
 	
 func remove_statuses_by_tags(tags_to_remove: Array[StringName]) -> void:
-	for status_id in _active_statuses.keys():
-		var instance = _active_statuses.get(status_id)
+	for status_id: StringName in _active_statuses.keys():
+		var instance: GameplayStatusInstance = _active_statuses.get(status_id)
 		if not is_instance_valid(instance): 
 			continue
-		var gsd = instance.status_data
+		var gsd: GameplayStatusData = instance.status_data
 		# 检查这个Status的tags是否与我们要移除的tags有交集
-		for tag in gsd.tags:
+		for tag: StringName in gsd.tags:
 			if tags_to_remove.has(tag):
 				# 找到了一个匹配！移除这个Status
 				remove_status(status_id)
@@ -106,7 +135,7 @@ func get_random_status(is_debuff: bool = false, debuff_tag : String = "status.de
 		return null
 
 	var statuses: Array[GameplayStatusInstance] = []
-	for status in _active_statuses.values():
+	for status: GameplayStatusInstance in _active_statuses.values():
 		if is_debuff and status.status_data.tags.has(debuff_tag):
 			statuses.append(status)
 
@@ -122,16 +151,16 @@ func handle_event(event_id: StringName, context: Dictionary) -> void:
 		return
 
 	var statuses_to_remove: Array[StringName] = []
-	for status_id in _active_statuses:
-		var instance = _active_statuses.get(status_id)
+	for status_id: StringName in _active_statuses:
+		var instance: GameplayStatusInstance = _active_statuses.get(status_id)
 		if not is_instance_valid(instance):
 			continue
 		
-		var should_remove = instance.handle_event(event_id, context)
+		var should_remove: bool = instance.handle_event(event_id, context)
 		if should_remove:
 			statuses_to_remove.append(status_id)
 
-	for status_id in statuses_to_remove:
+	for status_id: StringName in statuses_to_remove:
 		remove_status(status_id)
 
 func _apply_stacking_for_existing_status(status_id: StringName, gsd: GameplayStatusData, stacks: int) -> bool:
@@ -145,33 +174,29 @@ func _apply_stacking_for_existing_status(status_id: StringName, gsd: GameplaySta
 	
 	# 使用策略模式处理堆叠
 	if is_instance_valid(gsd) and is_instance_valid(gsd.stacking_policy):
-		var context = {}
+		var context: Dictionary = {}
 		return gsd.stacking_policy.handle_stacking(existing_instance, gsd, stacks, context)
 
 	return true
 
-func _handle_priority_for_existing_status(status_id: StringName, gsd: GameplayStatusData) -> bool:
-	if not _active_statuses.has(status_id):
-		return true
-	var existing_instance: GameplayStatusInstance = _active_statuses[status_id]
-	if not is_instance_valid(existing_instance) or not is_instance_valid(existing_instance.status_data):
-		_active_statuses.erase(status_id)
-		return true
-
-	var existing_priority: int = existing_instance.status_data.priority
-	if gsd.priority > existing_priority:
-		remove_status(status_id)
-		return true
-	elif gsd.priority < existing_priority:
-		return false
-
-	return true
+func _get_conflicting_statuses(gsd: GameplayStatusData) -> Array[GameplayStatusInstance]:
+	var result: Array[GameplayStatusInstance] = []
+	if gsd.duration == 0.0:
+		return result
+	for instance: GameplayStatusInstance in get_active_statuses():
+		if not is_instance_valid(instance) or not is_instance_valid(instance.status_data):
+			continue
+		for incoming: StringName in gsd.tags:
+			for held: StringName in instance.status_data.tags:
+				if TagManager.tags_conflict(incoming, held) and not result.has(instance):
+					result.append(instance)
+	return result
 
 ## 创建并应用新的状态实例
 ## - 对于有 ID 的状态：根据 duration 决定是否写入 _active_statuses
-## - 对于 ID 为空的状态：不会写入 _active_statuses，仅执行一次性效果
+## - 对于 ID 为空的状态：不会写入 _active_statuses，持续实例由调用方负责移除
 func _create_and_apply_new_status_instance(gsd: GameplayStatusData, instigator: Node, stacks: int, context: Dictionary) -> GameplayStatusInstance:
-	var instance := GameplayStatusInstance.new(gsd, self, instigator, stacks)
+	var instance: GameplayStatusInstance = GameplayStatusInstance.new(gsd, self, instigator, stacks)
 	var status_id: StringName = gsd.status_id
 	
 	# 检查是否需要监听事件
@@ -184,6 +209,13 @@ func _create_and_apply_new_status_instance(gsd: GameplayStatusData, instigator: 
 
 	# 先应用状态（执行效果）
 	instance.apply(context)
+	if not is_instance_valid(self):
+		return instance
+	if not instance.is_applied() or instance.is_removed():
+		if _active_statuses.get(status_id) == instance:
+			_active_statuses.erase(status_id)
+		_update_event_listening_status()
+		return instance if instance.is_applied() else null
 	
 	# 发信号和事件（即便 ID 为空，也允许外部根据实例做自定义逻辑）
 	status_applied.emit(status_id, instance)

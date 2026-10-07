@@ -13,6 +13,8 @@ func _apply_result(target: Node, instigator: Node, context: Dictionary) -> Gamep
 	var amount: Variant = context.get("status_stacks", stacks)
 	if not is_instance_valid(data) or not amount is int or amount < 1 or data.max_stacks < 1 or not is_finite(data.duration):
 		return GameplayEffectResult.new(GameplayEffectResult.Status.FAILED, GameplayEffectResult.Reason.INVALID_CONFIGURATION)
+	if data.duration != 0.0 and not TagManager.validate_tag_list(data.tags):
+		return GameplayEffectResult.new(GameplayEffectResult.Status.FAILED, GameplayEffectResult.Reason.INVALID_CONFIGURATION)
 	var component: GameplayStatusComponent = GameplayAbilitySystem.get_component_by_interface(target, "GameplayStatusComponent") as GameplayStatusComponent
 	if not is_instance_valid(component):
 		return GameplayEffectResult.new(GameplayEffectResult.Status.FAILED, GameplayEffectResult.Reason.MISSING_DEPENDENCY)
