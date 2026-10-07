@@ -228,8 +228,8 @@ func _test_status_and_other_builtins() -> void:
 	result = modifier.apply(actor, actor)
 	var attributes: GameplayVitalAttributeComponent = actor.get_node("GameplayVitalAttributeComponent") as GameplayVitalAttributeComponent
 	expect(result.did_apply() and attributes.get_value(&"max_health") == 120.0, "Modifier success must correspond to an installed numerical change")
-	modifier.remove(actor, actor)
-	expect(attributes.get_value(&"max_health") == 100.0 and bad.source_id.is_empty(), "Modifier template and previous remove entry must remain usable")
+	result.application.revoke()
+	expect(attributes.get_value(&"max_health") == 100.0 and bad.source_id.is_empty(), "Modifier template must remain unchanged and its application must be reversible")
 	var info: GameplayDamageInfo = GameplayDamageInfo.new(actor, actor, 20.0)
 	info.final_damage = 20.0
 	result = GE_ModifyIncomingDamage.new().apply(actor, actor, {"damage_info": info})

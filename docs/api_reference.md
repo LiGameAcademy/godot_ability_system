@@ -257,6 +257,9 @@
 自定义效果通过 `_apply_result(...) -> GameplayEffectResult` 报告结果；旧 void 钩子为 UNVERIFIED。
 详见[效果结果说明](effect_results.md)。
 
+结果的 `application` 是可选的独立应用句柄；`revoke()` 精确撤销可撤销部分，重复调用幂等。
+持续属性效果的旧 remove 调用需要迁移，详见[效果应用归属](effect_applications.md)。
+
 ---
 
 ## 实例

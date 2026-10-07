@@ -10,6 +10,8 @@ var target_id: int = 0
 var effect_path: String = ""
 var outputs: Dictionary = {}
 var children: Array[GameplayEffectResult] = []
+## 副本共享同一个撤销能力；数值事实仍独立复制。
+var application: GameplayEffectApplication = null
 
 func _init(value: Status = Status.NOT_APPLIED, why: Reason = Reason.NONE) -> void:
 	status = value
@@ -33,6 +35,7 @@ func copy() -> GameplayEffectResult:
 	result.target_id = target_id
 	result.effect_path = effect_path
 	result.outputs = outputs.duplicate(true)
+	result.application = application
 	for child: GameplayEffectResult in children:
 		result.children.append(child.copy())
 	return result
@@ -44,7 +47,10 @@ static func aggregate(results: Array[GameplayEffectResult]) -> GameplayEffectRes
 	var not_applied: bool = false
 	var failed: bool = false
 	var unknown: bool = false
+	var applications: Array[GameplayEffectApplication] = []
 	for child: GameplayEffectResult in results:
+		if is_instance_valid(child.application) and not applications.has(child.application):
+			applications.append(child.application)
 		result.children.append(child)
 		applied = applied or child.did_apply()
 		not_applied = not_applied or child.status != Status.APPLIED
@@ -61,4 +67,10 @@ static func aggregate(results: Array[GameplayEffectResult]) -> GameplayEffectRes
 		result.reason = Reason.LEGACY_UNVERIFIED
 	elif failed:
 		result.status = Status.FAILED
+	if applications.size() == 1:
+		result.application = applications[0]
+	elif applications.size() > 1:
+		result.application = GameplayEffectApplication.new()
+		for application: GameplayEffectApplication in applications:
+			result.application.add_child(application)
 	return result
