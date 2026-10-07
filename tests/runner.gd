@@ -4,6 +4,8 @@ func _initialize() -> void:
 	_run.call_deferred()
 
 func _run() -> void:
+	# 首帧初始化后再测试，使模拟输入使用正常的帧编号。
+	await process_frame
 	var cases: PackedStringArray = OS.get_cmdline_user_args()
 	if cases.is_empty():
 		for entry: String in DirAccess.get_files_at("res://tests/cases"):

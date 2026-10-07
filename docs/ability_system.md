@@ -221,8 +221,8 @@ Sequence
 如果需要技能预览，配置预览策略：
 
 ```gdscript
-var preview = CircleAreaPreviewStrategy.new()
-preview.radius = 5.0
+var preview: StrategyCircleArea = StrategyCircleArea.new()
+preview.max_range = 10.0
 ability_definition.preview_strategy = preview
 ```
 
@@ -233,39 +233,62 @@ ability_definition.preview_strategy = preview
   - **目标选择策略**：执行阶段，在行为树中搜索目标单位
 
 **预览策略工作流程：**
-1. `create_indicator()`: 创建视觉指示器（如圆形贴花、箭头模型）
-2. `update_indicator()`: 根据鼠标位置更新指示器
-3. `get_targeting_context()`: 获取目标上下文数据，传递给行为树
+1. `begin()`: 开始预览，按需创建指示器。
+2. `update()`: 接收输入上下文并更新指示器。
+3. `get_result_context()`: 获取目标上下文，传递给行为树。
+4. `cancel()`: 清理指示器、施法者引用及本轮结果。
 
 **内置预览策略：**
-- `CircleAreaPreviewStrategy`: 圆形区域预览
-- `LineAreaPreviewStrategy`: 直线区域预览
-- `ConeAreaPreviewStrategy`: 扇形区域预览
+- `StrategyCircleArea`: 3D 圆形区域预览。
+- `StrategyDirectional`: 3D 方向预览。
+- `StrategyCursorChange`: 鼠标光标预览。
+
+**技能所属对象与空间位置：**
+
+技能核心和 `AbilityPreviewStrategy.begin()` 使用 `Node`，不要求技能所属对象具备空间属性。
+地面指示器是具体的 3D 表现策略，使用 `Vector3`；选择它不意味着整个技能系统要求 `Node3D`。
+普通 `Node` 通过 `origin_position` 显式提供世界坐标，移动时在 `update()` 中继续提供新坐标。
+省略新坐标时沿用上次提供的坐标。已有 `Node3D` 调用可以不传此参数，此时自动跟随其位置。
+显式坐标优先于 `Node3D` 自身位置。
+
+配置了 `indicator_scene` 时，其根节点须为 `Node3D`。
+通过 `indicator_parent` 指定挂载节点；省略时使用施法者，挂载节点必须已进入场景树。
+指示器启用 `top_level`，不会继承宿主的旋转、缩放和位移；策略不再查找 `current_scene`。
+不配置指示器场景也可以计算预览结果。以下外部协调函数示范普通 `Node` 的用法：
+
+```gdscript
+func begin_ground_preview(component: GameplayAbilityComponent, ability_id: StringName, visual_position: Vector3, indicator_parent: Node) -> GameplayAbilityInstance:
+    return component.request_ability_preview(ability_id, {
+        "origin_position": visual_position,
+        "indicator_parent": indicator_parent,
+    })
+
+func update_ground_preview(component: GameplayAbilityComponent, delta: float, visual_position: Vector3, mouse_world_position: Vector3) -> void:
+    component.update_targeting(delta, {
+        "origin_position": visual_position,
+        "mouse_position": mouse_world_position,
+    })
+```
+
+组件的 `request_ability_preview()` 新增可选 context，旧的单参数调用保留。
+直接使用技能实例时，将相同的字典传入 `start_targeting()` 和 `update_targeting()` 即可。
+确认仍使用项目的 `confirm_cast` 输入动作。坐标类型错误会取消本轮预览并输出诊断。
+需要 2D 预览时，可以直接实现 `AbilityPreviewStrategy`，使用 `Vector2` 和 2D 指示器。
 
 **自定义预览策略：**
 ```gdscript
-extends AbilityPreviewStrategy
-class_name CustomPreviewStrategy
+extends GroundIndicatorPreviewStrategy
+class_name CustomGroundPreviewStrategy
 
 @export var custom_parameter: float = 0.0
 
-func create_indicator(parent: Node) -> Node3D:
-    # 创建自定义指示器
-    var indicator = preload("res://indicator.tscn").instantiate()
-    parent.get_tree().current_scene.add_child(indicator)
-    return indicator
-
-func update_indicator(indicator: Node3D, caster: Node3D, mouse_position: Vector3) -> void:
-    # 更新指示器位置和形状
-    indicator.global_position = mouse_position
-
-func get_targeting_context(caster: Node3D, mouse_position: Vector3) -> Dictionary:
-    # 返回目标上下文数据
-    return {
-        "target_position": mouse_position,
-        "target_type": "position"
-    }
+func _update_indicator(indicator: Node3D, origin_position: Vector3, mouse_position: Vector3) -> void:
+    indicator.global_position = _get_clamped_position(origin_position, mouse_position)
 ```
+
+已有地面预览子类需将 `_update_indicator()` 的第二个参数由 `caster: Node3D`
+改为 `origin_position: Vector3`，并用该坐标替换对 `caster.global_position` 的读取。
+圆形策略沿用基类的位置结果；方向策略额外返回 `target_direction`。
 
 ### 步骤 5: 配置黑板默认数据
 
@@ -405,7 +428,7 @@ Sequence
 
 ```gdscript
 # 创建预览策略
-var preview = CircleAreaPreviewStrategy.new()
+var preview: StrategyCircleArea = StrategyCircleArea.new()
 preview.indicator_scene = preload("res://indicator_circle.tscn")
 preview.max_range = 10.0
 preview.snap_to_ground = true

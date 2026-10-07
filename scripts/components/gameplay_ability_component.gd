@@ -305,7 +305,7 @@ func has_ability(ability_id: StringName) -> bool:
 ## 根据配置决定是直接施法（智能施法/瞬发）还是进入预览模式
 ## [param] ability_id: 技能 ID
 ## [return] GameplayAbilityInstance 如果进入预览模式返回实例，否则返回 null
-func request_ability_preview(ability_id: StringName) -> GameplayAbilityInstance:
+func request_ability_preview(ability_id: StringName, extra_context: Dictionary = {}) -> GameplayAbilityInstance:
 	if _is_exiting:
 		return null
 	var ability_instance: GameplayAbilityInstance = get_ability_instance(ability_id)
@@ -313,7 +313,7 @@ func request_ability_preview(ability_id: StringName) -> GameplayAbilityInstance:
 		return null
 
 	# 1. 前置检查：如果 CD 没好，就别预览了
-	if not can_activate_ability(ability_id):
+	if not can_activate_ability(ability_id, extra_context):
 		# 这里可以触发 UI 提示 "技能冷却中"
 		return null
 
@@ -324,7 +324,7 @@ func request_ability_preview(ability_id: StringName) -> GameplayAbilityInstance:
 		return null
 	else:
 		# 分支 B: 进入预览模式
-		ability_instance.start_targeting()
+		ability_instance.start_targeting(extra_context.duplicate(true))
 		if not ability_instance.is_targeting():
 			return null
 		# 如果之前有技能在瞄准，先取消它
