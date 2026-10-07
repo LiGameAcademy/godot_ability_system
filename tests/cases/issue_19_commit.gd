@@ -196,7 +196,8 @@ func _test_owner_exit_in_notification() -> void:
 	var ability: GameplayAbilityInstance = component.get_ability_instance(definition.ability_id)
 	var context: Dictionary = {"instigator": actor, "ability_component": component}
 	ability.try_activate(context)
-	vitals.vital_value_changed.connect(func(_id: StringName, _value: float, _max: float, _percent: float, _regen: bool) -> void: actor.free())
+	# 从仍被调用方持有的技能发出的通知中释放角色，避免释放正在发信号的 Vital 组件。
+	ability.ability_data_changed.connect(func(_current: GameplayAbilityInstance) -> void: actor.free())
 	expect(ability.try_commit(context), "Owner exit during notification must not undo an already committed payment")
 	expect(ability.is_disposed() and not is_instance_valid(actor), "Owner exit must complete disposal after commit notifications")
 	expect(not ability.try_commit(context), "Disposed instance must not accept another commitment")
