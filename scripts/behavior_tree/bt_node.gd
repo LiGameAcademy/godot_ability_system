@@ -10,6 +10,13 @@ enum Status {
 
 @export var node_id: StringName = ""
 
+## 仅供配置诊断，不改变 tick 或给动作增加全局 once 标记。
+enum ReevaluationSafety { UNKNOWN, SAFE, SIDE_EFFECTS }
+
+## 自定义叶节点应明确声明是否能重复评估。
+func get_reevaluation_safety() -> int:
+	return ReevaluationSafety.UNKNOWN
+
 ## 增加 delta 参数，这对计时类节点至关重要
 func tick(instance: GAS_BTInstance, delta: float) -> int:
 	# 1. 检查是否是"首次进入"

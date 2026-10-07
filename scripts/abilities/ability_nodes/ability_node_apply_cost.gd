@@ -22,6 +22,9 @@ class_name AbilityNodeApplyCost
 @export var allow_overdraft: bool = false
 ## 是否只检查不消耗（如果为 true，只检查不实际扣除）
 @export var check_only: bool = false
+
+func get_reevaluation_safety() -> int:
+	return ReevaluationSafety.SAFE if check_only else ReevaluationSafety.SIDE_EFFECTS
 ## Vital 组件名称（用于查找组件）
 @export var vital_comp_name: StringName = &"GameplayVitalAttributeComponent"
 

@@ -487,6 +487,31 @@ func execute(blackboard: BTBlackboard) -> BTNode.Result:
 
 ## 最佳实践
 
+### 技能副作用与动态判断
+
+普通施法流程推荐记忆 `GAS_BTSequence`：扣费、伤害等步骤完成后，等待期间
+从当前步骤继续，不从头重做。`GAS_BTDynamicSequence` 每帧从头检查；
+“伤害 → 等待 1 秒”放在里面，会在等待时反复伤害。
+`GAS_BTDynamicSelector` 也会重新尝试高优先级候选，候选失败前已经产生的伤害不会回滚。
+
+需要动态判断时，把条件保持在可重复计算的部分；让真正的施法由独立记忆流程运行，
+或者在现有主动技能外层决定何时启动/取消它。把副作用包进一个 Sequence，
+再放在动态祖先下，仍可能在这个 Sequence 完成后被重新进入。
+切换清理负责退出旧分支，不等于撤销已经扣掉的费用或已经命中的伤害。
+
+刻意周期攻击用 `GAS_BTRepeatPeriodic` 明确间隔，放在独立流程或记忆 Sequence 中。
+若它仍被动态祖先反复退出、重新进入，首次执行也可能重复，所以诊断不会仅凭周期包装
+就把动态祖先下的副作用视为安全。一次施法的费用提交幂等还由 #19 单独完成。
+
+`GAS_BTInstance.get_configuration_warnings()` 返回只读问题列表，实例创建时也会提示。
+诊断包含节点路径、children 索引和 node_id，不会运行节点或更改资源。
+自定义叶节点可以覆盖 `get_reevaluation_safety()`，声明 SAFE、SIDE_EFFECTS 或 UNKNOWN。
+内置条件和等待标为 SAFE；技能动作保守地标为 SIDE_EFFECTS；未声明的自定义动作会提示
+需要确认。SAFE 必须由节点作者保证，不代表诊断能证明任意脚本没有副作用。
+
+这次保留动态执行语义，提示不会阻止执行，也没有增加全局 once 开关。
+结构循环和缺节点仅给出诊断，错误资源仍需修正后再运行。
+
 1. **使用 Sequence 组织步骤**：按顺序执行的步骤使用 Sequence
 2. **使用 Selector 处理分支**：条件分支使用 Selector
 3. **合理使用并行节点**：独立操作使用 Parallel

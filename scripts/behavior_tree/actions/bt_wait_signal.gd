@@ -1,6 +1,9 @@
 extends GAS_BTAction
 class_name GAS_BTWaitSignal
 
+func get_reevaluation_safety() -> int:
+	return ReevaluationSafety.SAFE
+
 ## 基于观察者模式的等待节点
 ## 职责：挂起行为树，直到收到黑板变量变更通知，或超时
 
