@@ -11,6 +11,7 @@ func run() -> void:
 	var feature: PersistentFeature = PersistentFeature.new()
 	var cooldown: CooldownFeature = CooldownFeature.new()
 	var definition: GameplayAbilityDefinition = GameplayAbilityDefinition.new()
+	definition.execution_tree = RegressionBTProbe.new()
 	definition.blackboard_defaults = {"range": 12.0, "nested": {"values": [1, 2]}}
 	definition.features = [feature, cooldown]
 	var ability: GameplayAbilityInstance = definition.create_instance(actor)

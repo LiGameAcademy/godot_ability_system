@@ -49,22 +49,13 @@ func _build_effect_nodes() -> GAS_BTNode:
 	return sequence
 
 ## 验证配置的合理性
-func _validate_configuration() -> void:
-	super()
-	
-	# 验证：投射物数量应该为正
-	if projectile_count <= 0:
-		push_error("ProjectileAbilityDefinition [%s]: projectile_count 必须为正数 (%d)" % [ability_id, projectile_count])
-		projectile_count = 1
-
-	# 验证：散射角度应该非负
-	if spread_angle < 0.0:
-		push_error("ProjectileAbilityDefinition [%s]: spread_angle 不能为负数 (%.2f)" % [ability_id, spread_angle])
-		spread_angle = 0.0
-
-	# 验证：应该配置投射物数据
-	if not is_instance_valid(projectile_data):
-		push_warning(
-			"ProjectileAbilityDefinition [%s]: 没有配置 projectile_data，技能可能不会产生任何效果。\n" % ability_id +
-			"请确保这是预期的行为。"
-		)
+func get_configuration_errors() -> PackedStringArray:
+	var errors: PackedStringArray = super()
+	_check_number(errors, "projectile_count", projectile_count, true)
+	_check_number(errors, "spread_angle", spread_angle)
+	if not is_finite(face_target_rotation_speed):
+		errors.append("face_target_rotation_speed must be finite")
+	if not is_instance_valid(execution_tree):
+		if not is_instance_valid(projectile_data) or not is_instance_valid(projectile_data.projectile_scene):
+			errors.append("projectile_data.projectile_scene is required")
+	return errors

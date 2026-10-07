@@ -20,7 +20,7 @@ signal ability_completed(success: bool)
 ## 技能数据改变
 signal ability_data_changed(ability: GameplayAbilityInstance)
 
-func _init(owner: Node, definition: GameplayAbilityDefinition) -> void:
+func _init(owner: Node, definition: GameplayAbilityDefinition, tree: GAS_BTNode = null) -> void:
 	_owner = owner
 	_definition = definition
 	disabled = definition.disabled
@@ -30,8 +30,9 @@ func _init(owner: Node, definition: GameplayAbilityDefinition) -> void:
 	_blackboard = GAS_BTBlackboard.new()
 	_blackboard.value_changed.connect(_on_blackboard_value_changed)
 	clear_blackboard()
-	if is_instance_valid(_definition.execution_tree):
-		_bt_instance = GAS_BTInstance.new(_owner, _definition.execution_tree, _blackboard)
+	var tree_to_use: GAS_BTNode = tree if is_instance_valid(tree) else definition.execution_tree
+	if is_instance_valid(tree_to_use):
+		_bt_instance = GAS_BTInstance.new(_owner, tree_to_use, _blackboard)
 	#else:
 		#push_warning("AbilityInstance: execution_tree is not valid!")
 
@@ -40,7 +41,7 @@ func get_definition() -> GameplayAbilityDefinition:
 
 ## 尝试激活技能 (由 Player/Component 调用)
 func try_activate(context: Dictionary = {}) -> bool:
-	if disabled:
+	if disabled or not is_instance_valid(_bt_instance):
 		return false
 	context = _make_activation_context(context)
 	if is_active:
@@ -132,7 +133,7 @@ func end_ability(final_status: int = GAS_BTNode.Status.SUCCESS) -> void:
 
 ## 检查是否可以施法
 func can_activate(context: Dictionary = {}) -> bool:
-	if disabled:
+	if disabled or not is_instance_valid(_bt_instance):
 		return false
 	return _can_activate_request(_make_activation_context(context))
 

@@ -114,32 +114,14 @@ func _build_keep_on_sequence() -> GAS_BTSequence:
 	return keep_on_sequence
 	
 ## 验证配置的合理性
-func _validate_configuration() -> void:
-	super()
-	
-	# 验证：周期性消耗应该非负
-	if periodic_health_cost < 0.0:
-		push_error("SacrificeAbilityDefinition [%s]: periodic_health_cost 不能为负数 (%.2f)" % [ability_id, periodic_health_cost])
-		periodic_health_cost = 0.0
-	# 验证：周期性执行间隔应该为正
-	if periodic_interval <= 0.0:
-		push_error("SacrificeAbilityDefinition [%s]: periodic_interval 必须为正数 (%.2f)" % [ability_id, periodic_interval])
-		periodic_interval = 1.0
-	# 验证：伤害半径应该非负
-	if damage_radius < 0.0:
-		push_error("SacrificeAbilityDefinition [%s]: damage_radius 不能为负数 (%.2f)" % [ability_id, damage_radius])
-		damage_radius = 0.0
-	# 验证：如果配置了周期性消耗，应该配置了 Vital ID
+func get_configuration_errors() -> PackedStringArray:
+	var errors: PackedStringArray = super()
+	_check_number(errors, "periodic_health_cost", periodic_health_cost)
+	_check_number(errors, "periodic_interval", periodic_interval, true)
+	_check_number(errors, "damage_radius", damage_radius)
+	_check_number(errors, "periodic_damage_multiplier", periodic_damage_multiplier)
 	if periodic_health_cost > 0.0 and periodic_health_vital_id.is_empty():
-		push_warning(
-				"SacrificeAbilityDefinition [%s]: 配置了 periodic_health_cost (%.2f) 但没有配置 periodic_health_vital_id。\n" % [ability_id, periodic_health_cost] +
-				"周期性消耗可能无法正常工作。"
-			)
-	
-	# 验证：如果配置了周期性伤害效果，应该配置了区域目标策略或伤害半径
-	if is_instance_valid(periodic_damage_effect):
-		if not is_instance_valid(area_targeting_strategy) and damage_radius <= 0.0:
-			push_warning(
-				"SacrificeAbilityDefinition [%s]: 配置了 periodic_damage_effect 但没有配置 area_targeting_strategy 或 damage_radius。\n" % ability_id +
-				"周期性伤害可能无法正常工作。"
-			)
+		errors.append("periodic_health_vital_id is required when periodic_health_cost is positive")
+	if is_instance_valid(periodic_damage_effect) and not is_instance_valid(area_targeting_strategy):
+		errors.append("area_targeting_strategy is required when periodic_damage_effect is configured")
+	return errors
