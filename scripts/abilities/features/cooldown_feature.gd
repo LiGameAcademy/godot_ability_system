@@ -1,7 +1,7 @@
 extends GameplayAbilityFeature
 class_name CooldownFeature
 
-const KEY_COOLDOWN_TIMER = "cooldown_timer"
+const KEY_COOLDOWN_TIMER: String = "cooldown_timer"
 
 @export_group("Cooldown Settings")
 ## 冷却时间（秒）
@@ -19,11 +19,11 @@ func can_activate(ability: GameplayAbilityInstance, context: Dictionary) -> bool
 		return true
 
 	# 从黑板读取剩余时间
-	var remaining = _get_timer(ability)
+	var remaining: float = _get_timer(ability)
 	return remaining <= 0.0
 
 func update(ability: GameplayAbilityInstance, delta: float) -> void:
-	var remaining = _get_timer(ability)
+	var remaining: float = _get_timer(ability)
 	if remaining > 0.0:
 		remaining -= delta
 		if remaining <= 0.0:
@@ -34,6 +34,11 @@ func update(ability: GameplayAbilityInstance, delta: float) -> void:
 func start_cooldown(ability: GameplayAbilityInstance, duration: float = cooldown_duration) -> void:
 	if duration > 0.0:
 		_set_timer(ability, duration)
+
+## 仅由提交入口调用，通知由入口在所有状态写好后发出。
+func _commit_silently(ability: GameplayAbilityInstance) -> void:
+	if cooldown_duration > 0.0:
+		ability.set_feature_data(feature_name, KEY_COOLDOWN_TIMER, cooldown_duration, false)
 
 ## 获取冷却剩余时间
 func get_cooldown_remaining(ability: GameplayAbilityInstance) -> float:

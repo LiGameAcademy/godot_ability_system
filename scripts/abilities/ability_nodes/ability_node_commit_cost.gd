@@ -5,22 +5,15 @@ class_name AbilityNodeCommitCost
 ## 职责：检查并消耗技能所需的资源（如魔法值、体力等）
 ##
 ## 原理：
-## 该节点从 AbilityInstance 中获取 CostFeature，并调用其 try_pay 方法。
+## 该节点适配技能实例的统一提交入口，仅请求费用阶段。
 ## 如果消耗失败，节点返回 FAILURE，中断技能执行。
 
 @export var cost_feature_name: String = "CostFeature"
 
-func _tick(instance: GAS_BTInstance, delta: float) -> int:
-	var ability = _get_var(instance, "ability_instance")
+func _tick(instance: GAS_BTInstance, _delta: float) -> int:
+	var ability: GameplayAbilityInstance = _get_var(instance, "ability_instance") as GameplayAbilityInstance
 	if not is_instance_valid(ability):
-		push_error("AbilityNodeCommitCooldown: ability is not valid!")
+		push_error("AbilityNodeCommitCost: ability is not valid!")
 		return Status.FAILURE
-	var cost_feature : CostFeature = ability.get_feature(cost_feature_name)
-	if not is_instance_valid(cost_feature):
-		push_error("AbilityNodeCommitCooldown: cost_feature is not valid!")
-		return Status.FAILURE
-	var context : Dictionary = _get_var(instance, "context", {})
-	if context.is_empty():
-		push_warning("AbilityNodeCommitCost: context is empty!")
-
-	return Status.SUCCESS if cost_feature.try_pay(ability, context) else Status.FAILURE
+	var success: bool = ability.try_commit(_get_context(instance), true, false, cost_feature_name)
+	return Status.SUCCESS if success and ability.is_active else Status.FAILURE
