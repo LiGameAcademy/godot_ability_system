@@ -20,18 +20,22 @@ var _learned_abilities: Dictionary[StringName, GameplayAbilityInstance] = {}
 var _current_casting_ability: GameplayAbilityInstance = null
 ## 当前正在预览的技能实例（用于管理预览状态）
 var _current_targeting_ability: GameplayAbilityInstance = null
+var _is_exiting: bool = false
 
 #region ========== 信号定义 ==========
 signal ability_learned(ability: GameplayAbilityInstance)				## 技能学会信号
 signal ability_forgotten(ability_id: StringName)						## 技能遗忘信号
 signal ability_activated(ability: GameplayAbilityInstance, context: Dictionary)				## 技能激活信号
-signal ability_completed(ability: GameplayAbilityInstance, success: bool)				## 技能完成信号（所有逻辑执行完毕，进入后摇阶段）
+signal ability_completed(ability: GameplayAbilityInstance, success: bool)				## 本轮执行收尾后的通知，可在回调中重新施法
 #endregion
 
 #region ========== 生命周期 ==========
+func _enter_tree() -> void:
+	_is_exiting = false
+
 func _ready() -> void:
 	# 学习初始技能
-	for ability_data in _initial_abilities:
+	for ability_data: GameplayAbilityDefinition in _initial_abilities:
 		learn_ability(ability_data)
 	# 启用 process 以更新技能内部状态（冷却、连击计时器等）
 	set_process(true)
@@ -39,13 +43,32 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	# 统一调用所有技能的 update 方法（符合开闭原则）
 	# 技能会在自己的 update 中管理冷却时间
-	for ability_id in _learned_abilities:
-		var ability_instance : GameplayAbilityInstance = _learned_abilities[ability_id]
+	for ability_instance: GameplayAbilityInstance in _learned_abilities.values():
 		if not is_instance_valid(ability_instance):
 			continue
 
 		# 更新技能（包括冷却时间）
 		ability_instance.update(delta)
+
+func _exit_tree() -> void:
+	_shutdown()
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_PREDELETE:
+		_shutdown() # 也覆盖未进入场景树、直接作为逻辑对象使用的组件。
+
+func _shutdown() -> void:
+	if _is_exiting:
+		return
+	_is_exiting = true
+	var abilities: Array[GameplayAbilityInstance] = _learned_abilities.values()
+	_learned_abilities.clear()
+	_current_casting_ability = null
+	_current_targeting_ability = null
+	for ability: GameplayAbilityInstance in abilities:
+		if is_instance_valid(ability):
+			ability.dispose(self, GameplayAbilityInstance.EndReason.OWNER_EXIT)
+			_disconnect_completion(ability)
 #endregion
 
 #region ========== 公共API - 技能管理 ==========
@@ -56,14 +79,14 @@ func initialize(initial_abilities : Array[GameplayAbilityDefinition] =[]) -> voi
 		_initial_abilities = initial_abilities.duplicate(true)
 		
 	# 学习初始技能
-	for ability_data in _initial_abilities:
+	for ability_data: GameplayAbilityDefinition in _initial_abilities:
 		learn_ability(ability_data)
 
 ## 匹配输入
 func match_input(event: InputEvent) -> StringName:
 	for instance : GameplayAbilityInstance in _learned_abilities.values():
 		# 1. 获取输入特性
-		var input_feature = instance.get_feature("AbilityInputFeature") as AbilityInputFeature
+		var input_feature: AbilityInputFeature = instance.get_feature("AbilityInputFeature") as AbilityInputFeature
 		if not is_instance_valid(input_feature):
 			continue
 		# 2. 筛选匹配的技能
@@ -75,11 +98,13 @@ func match_input(event: InputEvent) -> StringName:
 ## 学习技能
 ## [param] ability_data: GameplayAbilityDefinition 技能定义
 func learn_ability(ability_data: GameplayAbilityDefinition) -> void:
+	if _is_exiting:
+		return
 	if not is_instance_valid(ability_data):
 		push_error("GameplayAbilityComponent: Ability data is not valid")
 		return
 
-	var ability_id := ability_data.ability_id
+	var ability_id: StringName = ability_data.ability_id
 	if _learned_abilities.has(ability_id):
 		# 已经学会
 		push_warning("GameplayAbilityComponent: Ability %s already learned." % ability_id)
@@ -117,13 +142,19 @@ func forget_ability(ability_id: StringName) -> bool:
 		push_warning("GameplayAbilityComponent: Ability %s not found." % ability_id)
 		return false
 	
-	if ability_instance.ability_completed.is_connected(_on_ability_completed.bind(ability_instance)):
-		ability_instance.ability_completed.disconnect(_on_ability_completed.bind(ability_instance))
-	# 移除被动技能效果
-	ability_instance.handle_forgotten(self)
+	# 先释放容器中的引用，完成回调不会再拿到旧的已学会实例。
 	_learned_abilities.erase(ability_id)
+	_clear_current_references(ability_instance)
+	ability_instance.handle_forgotten(self)
+	# 在 tick 内遗忘时，收尾会推迟到栈返回；届时由完成回调断开订阅。
+	if not is_instance_valid(ability_instance.get_bt_instance()):
+		_disconnect_completion(ability_instance)
+	if not is_instance_valid(self) or _is_exiting:
+		return true
 
 	ability_forgotten.emit(ability_id)
+	if not is_instance_valid(self) or _is_exiting:
+		return true
 	AbilityEventBus.trigger_game_event(&"ability_forgotten", {
 		"entity": get_parent(),
 		"ability_id": ability_id
@@ -190,7 +221,9 @@ func can_activate_ability(ability_id: StringName, context: Dictionary = {}) -> b
 ## [param] context: 技能执行上下文
 ## [return] bool 是否成功激活
 func try_activate_ability(ability_id: StringName, context: Dictionary = {}) -> bool:
-	var ability_instance = get_ability_instance(ability_id)
+	if _is_exiting:
+		return false
+	var ability_instance: GameplayAbilityInstance = get_ability_instance(ability_id)
 	if not is_instance_valid(ability_instance):
 		push_error("GameplayAbilityComponent: Ability instance is not valid.")
 		return false
@@ -199,25 +232,32 @@ func try_activate_ability(ability_id: StringName, context: Dictionary = {}) -> b
 	context.ability_component = self
 	context.ability_id = ability_id
 	context.instigator = get_parent()
+	if not ability_instance.ability_completed.is_connected(_on_ability_completed.bind(ability_instance)):
+		ability_instance.ability_completed.connect(_on_ability_completed.bind(ability_instance))
+	var previous: GameplayAbilityInstance = _current_casting_ability
+	_current_casting_ability = ability_instance
 	
 	# 正常执行技能：检查消耗和冷却（由 Ability 自己处理）
 	# 注意：冷却检查、冷却时间计算、冷却缩减应用都由 Ability._commit_cast() 处理
 	if not ability_instance.try_activate(context):
+		if _current_casting_ability == ability_instance:
+			_current_casting_ability = previous if is_instance_valid(previous) and previous.is_active else null
 		push_error("GameplayAbilityComponent: Ability %s try activate failed." % ability_instance.get_definition().ability_id)
 		return false
+	if not is_instance_valid(self) or _is_exiting:
+		return true
 
-	# 设置当前正在执行的技能（用于后摇可取消机制）
-	_current_casting_ability = ability_instance
+	if _current_casting_ability == ability_instance and not ability_instance.is_active:
+		_current_casting_ability = null
 
 	ability_activated.emit(ability_instance, context)
+	if not is_instance_valid(self) or _is_exiting:
+		return true
 	AbilityEventBus.trigger_game_event(&"ability_activated", {
 		"entity": get_parent(),
 		"ability_id": ability_instance.get_definition().ability_id,
 	})
 	
-	# 订阅技能完成信号（如果尚未订阅）
-	if not ability_instance.ability_completed.is_connected(_on_ability_completed.bind(ability_instance)):
-		ability_instance.ability_completed.connect(_on_ability_completed.bind(ability_instance))
 	return true
 #endregion
 
@@ -227,7 +267,7 @@ func try_activate_ability(ability_id: StringName, context: Dictionary = {}) -> b
 ## [param] ability_id: StringName 技能ID（可选，如果不提供则取消当前执行的技能）
 ## [param] context: Dictionary 技能执行上下文
 func cancel_ability(ability_id: StringName = &"", context: Dictionary = {}) -> void:
-	var target_id = ability_id
+	var target_id: StringName = ability_id
 	if ability_id.is_empty():
 		if not is_instance_valid(_current_casting_ability):
 			return
@@ -236,15 +276,20 @@ func cancel_ability(ability_id: StringName = &"", context: Dictionary = {}) -> v
 	if target_id.is_empty():
 		return
 
-	var ability_instance = get_ability_instance(target_id)
+	var ability_instance: GameplayAbilityInstance = get_ability_instance(target_id)
 	if not is_instance_valid(ability_instance):
 		return
 
-	ability_instance.end_ability(GAS_BTNode.Status.FAILURE)
-	AbilityEventBus.trigger_game_event(&"ability_cancelled", {
-		"entity": get_parent(),
-		"ability_id": target_id
-	})
+	var cancelled: bool = ability_instance.cancel(context)
+	if not is_instance_valid(self) or _is_exiting:
+		return
+	if _current_targeting_ability == ability_instance and not ability_instance.is_targeting():
+		_current_targeting_ability = null
+	if cancelled:
+		AbilityEventBus.trigger_game_event(&"ability_cancelled", {
+			"entity": get_parent(),
+			"ability_id": target_id
+		})
 
 func get_current_casting_ability() -> GameplayAbilityInstance:
 	return _current_casting_ability
@@ -261,7 +306,9 @@ func has_ability(ability_id: StringName) -> bool:
 ## [param] ability_id: 技能 ID
 ## [return] GameplayAbilityInstance 如果进入预览模式返回实例，否则返回 null
 func request_ability_preview(ability_id: StringName) -> GameplayAbilityInstance:
-	var ability_instance = get_ability_instance(ability_id)
+	if _is_exiting:
+		return null
+	var ability_instance: GameplayAbilityInstance = get_ability_instance(ability_id)
 	if not is_instance_valid(ability_instance):
 		return null
 
@@ -278,6 +325,8 @@ func request_ability_preview(ability_id: StringName) -> GameplayAbilityInstance:
 	else:
 		# 分支 B: 进入预览模式
 		ability_instance.start_targeting()
+		if not ability_instance.is_targeting():
+			return null
 		# 如果之前有技能在瞄准，先取消它
 		if is_instance_valid(_current_targeting_ability) and _current_targeting_ability != ability_instance:
 			_current_targeting_ability.cancel_targeting()
@@ -287,7 +336,7 @@ func request_ability_preview(ability_id: StringName) -> GameplayAbilityInstance:
 ## 取消指定技能的预览
 ## [param] ability_id: StringName 技能 ID（可选，如果不提供则取消当前预览的技能）
 func cancel_ability_preview(ability_id: StringName = &"") -> void:
-	var target_id = ability_id
+	var target_id: StringName = ability_id
 	if target_id.is_empty():
 		# 如果没有指定技能ID，取消当前预览的技能
 		if is_instance_valid(_current_targeting_ability):
@@ -296,7 +345,7 @@ func cancel_ability_preview(ability_id: StringName = &"") -> void:
 		return
 
 	# 取消指定技能的预览
-	var ability_instance = get_ability_instance(target_id)
+	var ability_instance: GameplayAbilityInstance = get_ability_instance(target_id)
 	if is_instance_valid(ability_instance):
 		ability_instance.cancel_targeting()
 		if _current_targeting_ability == ability_instance:
@@ -349,27 +398,33 @@ func try_activate_targeting_ability() -> bool:
 func _on_ability_completed(success: bool, ability: GameplayAbilityInstance) -> void:
 	if not is_instance_valid(ability):
 		return
-		
-	# 只有当前正在执行的技能才需要结束
-	if _current_casting_ability != ability:
+	# 更早的实例监听器可能已经重新施法或开始新预览；只清理仍结束的会话。
+	if _current_casting_ability == ability and not ability.is_active:
+		_current_casting_ability = null
+	if _current_targeting_ability == ability and not ability.is_targeting():
+		_current_targeting_ability = null
+	if _is_exiting:
 		return
 
-	var ability_id = ability.get_definition().ability_id
+	var ability_id: StringName = ability.get_definition().ability_id
+	if _learned_abilities.get(ability_id) != ability:
+		_disconnect_completion(ability)
+	ability_completed.emit(ability, success)
+	if not is_instance_valid(self) or _is_exiting:
+		return
+	AbilityEventBus.trigger_game_event(&"ability_completed", {
+		"entity": get_parent(),
+		"ability_id": ability_id
+	})
 
-	# 检查是否是临时订阅（链式调用未学习的技能）
-	# 如果是临时订阅，需要断开连接
-	var is_learned = _learned_abilities.has(ability_id)
-	if not is_learned:
-		if ability.ability_completed.is_connected(_on_ability_completed.bind(ability)):
-			ability.ability_completed.disconnect(_on_ability_completed.bind(ability))
-
-	# 结束技能
+func _clear_current_references(ability: GameplayAbilityInstance) -> void:
 	if _current_casting_ability == ability:
-		ability_completed.emit(ability, success)
-		AbilityEventBus.trigger_game_event(&"ability_completed", {
-			"entity": get_parent(),
-			"ability_id": ability_id
-		})
 		_current_casting_ability = null
+	if _current_targeting_ability == ability:
 		_current_targeting_ability = null
+
+func _disconnect_completion(ability: GameplayAbilityInstance) -> void:
+	var callback: Callable = _on_ability_completed.bind(ability)
+	if ability.ability_completed.is_connected(callback):
+		ability.ability_completed.disconnect(callback)
 #endregion
