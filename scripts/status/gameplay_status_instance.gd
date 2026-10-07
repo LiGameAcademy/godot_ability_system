@@ -38,6 +38,12 @@ func apply(context: Dictionary = {}) -> void:
 	if _applied or _removed:
 		return
 	_applied = true
+	if status_data.duration != 0.0 and not _apply_status_tags():
+		_applied = false
+		return
+	if _removed:
+		_remove_status_tags()
+		return
 	# 保存上下文（用于周期性效果和移除时效果）
 	_cached_context = context.duplicate()
 
@@ -51,7 +57,7 @@ func apply(context: Dictionary = {}) -> void:
 		return
 
 	# 应用所有的feature
-	for feature in status_data.features:
+	for feature: StatusFeature in status_data.features:
 		if _removed:
 			return
 		if is_instance_valid(feature):
@@ -68,12 +74,6 @@ func apply(context: Dictionary = {}) -> void:
 	if is_instance_valid(status_data.duration_policy):
 		_duration_policy = status_data.duration_policy.duplicate()
 		_duration_policy.initialize(self, status_data.duration)
-
-	# 【关键】在应用状态前，先移除互斥状态
-	_remove_mutually_exclusive_statuses()
-
-	# 应用状态标签（标签系统集成）
-	_apply_status_tags()
 
 	# 执行状态 Cue（视觉反馈）
 	_execute_status_cue()
@@ -96,7 +96,7 @@ func remove() -> void:
 		application.revoke()
 
 	# 移除所有 Feature
-	for feature in status_data.features:
+	for feature: StatusFeature in status_data.features:
 		if is_instance_valid(feature):
 			feature.remove_feature(self, remove_context)
 
@@ -124,7 +124,7 @@ func update(delta: float) -> bool:
 			return true
 
 	# 更新所有 Feature
-	for feature in status_data.features:
+	for feature: StatusFeature in status_data.features:
 		if is_instance_valid(feature):
 			feature.update_feature(self, delta)
 	
@@ -162,7 +162,7 @@ func handle_event(event_id: StringName, context: Dictionary) -> bool:
 		return false
 
 	# 让所有 Feature 处理事件
-	for feature in status_data.features:
+	for feature: StatusFeature in status_data.features:
 		if is_instance_valid(feature):
 			feature.handle_event(self, event_id, context)
 
@@ -252,46 +252,26 @@ func _apply_effects(effects: Array[GameplayEffect], context: Dictionary = {}, ow
 			break
 
 ## 应用状态标签（标签系统集成）
-func _apply_status_tags() -> void:
+func _apply_status_tags() -> bool:
 	if not is_instance_valid(owner_component) or not is_instance_valid(status_data):
-		return
-
-	# 应用状态的所有标签
-	for tag_id in status_data.tags:
-		if tag_id != &"":
-			TagManager.add_tag(owner_component.get_parent(), tag_id)
+		return false
+	return TagManager.add_tags(owner_component.get_parent(), status_data.tags, get_tag_source_id())
 
 ## 移除状态标签（标签系统集成）
 func _remove_status_tags() -> void:
 	if not is_instance_valid(owner_component) or not is_instance_valid(status_data):
 		return
 		
-	# 移除状态的所有标签
-	for tag_id in status_data.tags:
-		if tag_id != &"":
-			TagManager.remove_tag(owner_component.get_parent(), tag_id)
+	TagManager.remove_source(owner_component.get_parent(), get_tag_source_id())
 
-## 移除互斥状态（状态系统层面的互斥处理）
-func _remove_mutually_exclusive_statuses() -> void:
-	if not is_instance_valid(owner_component) or not is_instance_valid(status_data):
-		return
+func get_tag_source_id() -> StringName:
+	return _get_source_instance_id()
 
-	var target = owner_component.get_parent()
-	if not is_instance_valid(target):
-		return
+func is_applied() -> bool:
+	return _applied
 
-	# 获取当前状态的所有标签的互斥标签
-	var tags_to_remove: Array[StringName] = []
-	for tag_id in status_data.tags:
-		if tag_id == &"":
-			continue
-		# 获取该标签的所有互斥标签
-		var exclusions = TagManager.get_tag_exclusions(tag_id)
-		tags_to_remove.append_array(exclusions)
-
-	# 移除所有带互斥标签的状态
-	if not tags_to_remove.is_empty():
-		owner_component.remove_statuses_by_tags(tags_to_remove)
+func is_removed() -> bool:
+	return _removed
 
 ## 执行状态 Cue（视觉反馈）
 func _execute_status_cue() -> void:
@@ -318,7 +298,8 @@ func _stop_status_cue() -> void:
 		return
 		
 	# 停止克隆的 Cue 实例（Manager 会处理挂点计算）
-	GameplayCueManager.stop_cue(_cue_instance, owner_component.get_parent(), {})
+	var target: Node = owner_component.get_parent() if is_instance_valid(owner_component) else null
+	GameplayCueManager.stop_cue(_cue_instance, target, {})
 
 func _get_source_instance_id() -> StringName:
 	return "status." + str(get_instance_id())
