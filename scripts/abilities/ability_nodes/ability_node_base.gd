@@ -18,32 +18,19 @@ func _get_context(instance: GAS_BTInstance) -> Dictionary:
 ## 支持从黑板中获取单个 Node、Array[Node] 或空值
 ## 如果目标为空，且 use_instigator_as_fallback 为 true，则使用 instigator 作为目标（自施法）
 func _get_target_list(instance: GAS_BTInstance, use_instigator_as_fallback: bool = false) -> Array[Node]:
-	var raw_targets = instance.blackboard.get_var(target_key)
-	var context = _get_context(instance)
-
-	var target_list: Array[Node] = context.get(target_key)
-	# 处理空值或空数组
-	if raw_targets == null or (raw_targets is Array and raw_targets.is_empty()):
-		if use_instigator_as_fallback and is_instance_valid(context.get("instigator")):
-			target_list.append(context.instigator)
-		return target_list
-
-	# 处理数组
-	if raw_targets is Array:
-		for item in raw_targets:
-			if item is Node and is_instance_valid(item):
-				target_list.append(item as Node)
-		return target_list
-
-	# 处理单个节点
-	if raw_targets is Node and is_instance_valid(raw_targets):
-		target_list.append(raw_targets as Node)
-		return target_list
-
-	if use_instigator_as_fallback and is_instance_valid(context.get("instigator")):
-		target_list.append(context.instigator)
-
-	return target_list
+	var context: Dictionary = _get_context(instance)
+	var raw: Variant = instance.blackboard.get_var(target_key, context.get(target_key))
+	var targets: Array[Node] = []
+	if raw is Array:
+		for item: Variant in raw:
+			if item is Node and is_instance_valid(item) and not targets.has(item):
+				targets.append(item as Node)
+	elif raw is Node and is_instance_valid(raw):
+		targets.append(raw as Node)
+	var instigator_value: Variant = context.get("instigator")
+	if targets.is_empty() and use_instigator_as_fallback and instigator_value is Node and is_instance_valid(instigator_value):
+		targets.append(instigator_value as Node)
+	return targets
 
 ## 获取第一个目标（用于只需要单个目标的场景）
 func _get_first_target(instance: GAS_BTInstance, use_instigator_as_fallback: bool = false) -> Node:

@@ -2,78 +2,54 @@ extends GameplayEffect
 class_name GE_AttributeModifier
 
 @export var modifiers: Array[GameplayAttributeModifier] = []
-## 来源ID（用于批量移除）
-## 如果不设置，会从 context 中读取 source_id
-## 如果 context 中也没有，则使用 "effect." + 效果资源路径
+## 保留旧的批量来源语义；独立应用句柄在 #36 迁移。
 @export var source_id: StringName = &""
-@export var attribute_component_name : StringName = "GameplayVitalAttributeComponent"
+@export var attribute_component_name: StringName = &"GameplayVitalAttributeComponent"
 
 func _apply(target: Node, instigator: Node, context: Dictionary) -> void:
-	var attr_comp = GameplayAbilitySystem.get_component_by_interface(target, attribute_component_name)
-	if not is_instance_valid(attr_comp):
-		# 如果没有 AttributeComponent，静默失败（不是所有实体都需要属性）
-		push_error("GE_AttributeModifier: attr comp is not valid!")
-		return
+	_apply_result(target, instigator, context)
 
-	# 确定 source_id
-	var final_source_id = context.get("source_id", "effect." + source_id)
-	var stacks = context.get("stacks", 1)
+func _apply_result(target: Node, _instigator: Node, context: Dictionary) -> GameplayEffectResult:
+	var component: GameplayAttributeComponent = GameplayAbilitySystem.get_component_by_interface(target, attribute_component_name) as GameplayAttributeComponent
+	if not is_instance_valid(component):
+		return GameplayEffectResult.new(GameplayEffectResult.Status.FAILED, GameplayEffectResult.Reason.MISSING_DEPENDENCY)
+	var stacks: Variant = context.get("stacks", 1)
+	var source: Variant = context.get("source_id", "effect." + String(source_id))
+	if not stacks is int or stacks < 1 or not (source is String or source is StringName):
+		return GameplayEffectResult.new(GameplayEffectResult.Status.FAILED, GameplayEffectResult.Reason.INVALID_CONFIGURATION)
+	for modifier: GameplayAttributeModifier in modifiers:
+		if not is_instance_valid(modifier) or not is_finite(modifier.value) or not is_finite(modifier.value * int(stacks)):
+			return GameplayEffectResult.new(GameplayEffectResult.Status.FAILED, GameplayEffectResult.Reason.INVALID_CONFIGURATION)
+		if modifier.modifier_type not in GameplayAttributeModifier.ModifierType.values():
+			return GameplayEffectResult.new(GameplayEffectResult.Status.FAILED, GameplayEffectResult.Reason.INVALID_CONFIGURATION)
+		if not component.has_attribute(modifier.attribute_id):
+			return GameplayEffectResult.new(GameplayEffectResult.Status.FAILED, GameplayEffectResult.Reason.MISSING_DEPENDENCY)
+	var count: int = 0
+	for template: GameplayAttributeModifier in modifiers:
+		if not is_instance_valid(component):
+			var interrupted: GameplayEffectResult = GameplayEffectResult.new(GameplayEffectResult.Status.PARTIAL if count > 0 else GameplayEffectResult.Status.FAILED, GameplayEffectResult.Reason.INVALID_TARGET)
+			interrupted.outputs = {"modifier_count": count}
+			return interrupted
+		var modifier: GameplayAttributeModifier = template.duplicate() as GameplayAttributeModifier
+		modifier.source_id = StringName(source)
+		modifier.value *= int(stacks)
+		component.add_modifier(modifier)
+		count += 1
+	var result: GameplayEffectResult = GameplayEffectResult.new(GameplayEffectResult.Status.APPLIED if count > 0 else GameplayEffectResult.Status.NOT_APPLIED, GameplayEffectResult.Reason.NONE if count > 0 else GameplayEffectResult.Reason.NO_CHANGE)
+	result.outputs = {"modifier_count": count}
+	return result
 
-	# 应用所有修改器
-	for mod_template in modifiers:
-		if not is_instance_valid(mod_template):
-			continue
-		# 创建修改器的副本（避免修改模板）
-		var mod = mod_template.duplicate() as GameplayAttributeModifier
-		if not is_instance_valid(mod):
-			continue
-
-		# 设置 source_id
-		mod.source_id = final_source_id
-		mod.value *= stacks
-	
-		# 应用修改器
-		attr_comp.add_modifier(mod)
-
-## 移除效果的具体实现
 func _update_stacks(target: Node, instigator: Node, context: Dictionary, remove_previous: bool) -> void:
 	if remove_previous:
 		_remove_modifiers(target, context)
 	else:
-		_apply(target, instigator, context)
+		_apply_result(target, instigator, context)
 
-## 移除效果的具体实现
-## 注意：Effect 保持无状态特性，通过 context 中的 source_id 来识别要移除的修改器
-func _remove(target: Node, instigator: Node, context: Dictionary) -> void:
+func _remove(target: Node, _instigator: Node, context: Dictionary) -> void:
 	_remove_modifiers(target, context)
 
-## 移除修改器的核心逻辑（供 _apply 和 _remove 共用）
 func _remove_modifiers(target: Node, context: Dictionary) -> void:
-	var attr_comp = GameplayAbilitySystem.get_component_by_interface(target, attribute_component_name)
-	if not is_instance_valid(attr_comp):
-		# 如果没有 AttributeComponent，静默失败（不是所有实体都需要属性）
-		push_error("GE_AttributeModifier: attr comp is not valid!")
-		return
-		
-	# 确定 source_id
-	var final_source_id = context.get("source_id", "effect." + source_id)
-
-	# 批量移除修改器（通过 source_id）
-	attr_comp.remove_modifiers_by_source(final_source_id)
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
+	var component: GameplayAttributeComponent = GameplayAbilitySystem.get_component_by_interface(target, attribute_component_name) as GameplayAttributeComponent
+	var source: Variant = context.get("source_id", "effect." + String(source_id))
+	if is_instance_valid(component) and (source is String or source is StringName):
+		component.remove_modifiers_by_source(StringName(source))

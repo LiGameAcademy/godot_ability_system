@@ -4,6 +4,9 @@ class CountEffect extends GameplayEffect:
 	@export var counter_key: StringName = &"apply_count"
 	func _apply(target: Node, _instigator: Node, _context: Dictionary) -> void:
 		target.set_meta(counter_key, int(target.get_meta(counter_key, 0)) + 1)
+	func _apply_result(target: Node, instigator: Node, context: Dictionary) -> GameplayEffectResult:
+		_apply(target, instigator, context)
+		return GameplayEffectResult.new(GameplayEffectResult.Status.APPLIED)
 
 func run() -> void:
 	var actor: Node = Node.new()

@@ -211,6 +211,16 @@ func get_execution_result() -> AbilityResult:
 func get_last_execution_result() -> AbilityResult:
 	return _results.get_last_finished()
 
+## 效果事实独立于 BT 控制流，保留到本轮结束；返回的执行结果仍是副本。
+func record_effect_result(result: GameplayEffectResult) -> void:
+	if is_instance_valid(result):
+		_results.record_effect(result)
+
+## 由执行器汇总本次动作，不重复追加每个目标的结果。
+func record_effect_outcome(result: GameplayEffectResult) -> void:
+	if is_instance_valid(result):
+		_results.record_effect_outcome(result)
+
 func _complete_finish() -> void:
 	var status: int = _pending_end_status
 	var context: Dictionary = _pending_end_context

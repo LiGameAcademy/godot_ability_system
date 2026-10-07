@@ -19,6 +19,7 @@ var _cached_context: Dictionary = {}  ## 保存应用时的上下文（用于周
 var _cue_instance: GameplayCue = null  ## 保存克隆的 Cue 实例（用于停止时清理）
 
 var _feature_storage: Dictionary = {}  # 存储 Feature 的运行时数据
+var _last_effect_results: Array[GameplayEffectResult] = []
 
 ## 状态完成信号（瞬时状态立即完成，持续状态在移除时完成）发出此信号
 signal status_completed(status_instance: GameplayStatusInstance)
@@ -175,8 +176,15 @@ func accumulate_duration() -> void:
 		_duration_policy.accumulate(self, status_data.duration)
 
 ## 应用方法（公开）
-func apply_effects(effects: Array[GameplayEffect], context: Dictionary = {}) -> void:
+func apply_effects(effects: Array[GameplayEffect], context: Dictionary = {}) -> Array[GameplayEffectResult]:
 	_apply_effects(effects, context)
+	return get_last_effect_results()
+
+func get_last_effect_results() -> Array[GameplayEffectResult]:
+	var results: Array[GameplayEffectResult] = []
+	for result: GameplayEffectResult in _last_effect_results:
+		results.append(result.copy())
+	return results
 
 ## 获取特性数据
 func get_feature_storage(feature: StatusFeature) -> Dictionary:
@@ -191,11 +199,14 @@ func has_event_listening() -> bool:
 
 ## 应用效果
 func _apply_effects(effects: Array[GameplayEffect], context: Dictionary = {}) -> void:
+	_last_effect_results.clear()
 	if not is_instance_valid(owner_component):
+		_last_effect_results.append(GameplayEffectResult.new(GameplayEffectResult.Status.FAILED, GameplayEffectResult.Reason.INVALID_TARGET))
 		return
 
-	var target = owner_component.get_parent()
+	var target: Node = owner_component.get_parent()
 	if not is_instance_valid(target):
+		_last_effect_results.append(GameplayEffectResult.new(GameplayEffectResult.Status.FAILED, GameplayEffectResult.Reason.INVALID_TARGET))
 		return
 	
 	_cached_context.merge(context, true)
@@ -204,17 +215,21 @@ func _apply_effects(effects: Array[GameplayEffect], context: Dictionary = {}) ->
 	_cached_context["source_id"] = _get_source_instance_id()
 
 	# 应用所有的果
-	for effect_template in effects:
+	for effect_template: GameplayEffect in effects:
 		if not is_instance_valid(effect_template):
+			_last_effect_results.append(GameplayEffectResult.new(GameplayEffectResult.Status.FAILED, GameplayEffectResult.Reason.INVALID_CONFIGURATION))
 			continue
 		
 		# 克隆效果实例（避免状态共享）
-		var effect_clone = effect_template.duplicate(true) as GameplayEffect
+		var effect_clone: GameplayEffect = effect_template.duplicate(false) as GameplayEffect
 		if not is_instance_valid(effect_clone):
 			continue
 		
 		# 应用效果（瞬时操作，不存储）
-		effect_clone.apply(target, instigator, _cached_context)
+		if not is_instance_valid(target):
+			_last_effect_results.append(GameplayEffectResult.new(GameplayEffectResult.Status.FAILED, GameplayEffectResult.Reason.INVALID_TARGET))
+			break
+		_last_effect_results.append(effect_clone.apply(target, instigator if is_instance_valid(instigator) else null, _cached_context))
 
 ## 移除效果
 func _remove_effects(effects: Array[GameplayEffect], context: Dictionary) -> void:
