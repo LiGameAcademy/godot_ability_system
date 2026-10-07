@@ -1,11 +1,8 @@
-blank_issues_enabled: false
+blank_issues_enabled: true
 contact_links:
   - name: 💬 社区讨论
     url: https://discord.gg/V5nuzC2BcJ
     about: 加入Discord服务器参与讨论
-  - name: 🤝 QQ交流群
-    url: https://qm.qq.com/cgi-bin/qm/qr?k=xxx&jump_from=webapi
-    about: 加入QQ群752388002交流
   - name: 🌟 知识星球
     url: https://wx.zsxq.com/group/28885154818841
     about: 加入知识星球获取更多支持
