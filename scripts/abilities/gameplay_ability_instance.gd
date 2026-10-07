@@ -20,7 +20,7 @@ signal ability_completed(success: bool)
 ## 技能数据改变
 signal ability_data_changed(ability: GameplayAbilityInstance)
 
-func _init(owner: Node, definition: GameplayAbilityDefinition) -> void:
+func _init(owner: Node, definition: GameplayAbilityDefinition, tree: GAS_BTNode = null) -> void:
 	_owner = owner
 	_definition = definition
 	disabled = definition.disabled
@@ -30,8 +30,9 @@ func _init(owner: Node, definition: GameplayAbilityDefinition) -> void:
 	_blackboard = GAS_BTBlackboard.new()
 	_blackboard.value_changed.connect(_on_blackboard_value_changed)
 	clear_blackboard()
-	if is_instance_valid(_definition.execution_tree):
-		_bt_instance = GAS_BTInstance.new(_owner, _definition.execution_tree, _blackboard)
+	var tree_to_use: GAS_BTNode = tree if is_instance_valid(tree) else definition.execution_tree
+	if is_instance_valid(tree_to_use):
+		_bt_instance = GAS_BTInstance.new(_owner, tree_to_use, _blackboard)
 	#else:
 		#push_warning("AbilityInstance: execution_tree is not valid!")
 
@@ -40,12 +41,13 @@ func get_definition() -> GameplayAbilityDefinition:
 
 ## 尝试激活技能 (由 Player/Component 调用)
 func try_activate(context: Dictionary = {}) -> bool:
-	if disabled:
+	if disabled or not is_instance_valid(_bt_instance):
 		return false
+	context = _make_activation_context(context)
 	if is_active:
 		# 如果技能已激活，无论是否允许重新激活，都应该处理连击输入
 		# 触发信号，确保 GAS_BTWaitSignal 能够收到通知（用于连击系统）
-		var current_value = _blackboard.get_var("event_input_received", false)
+		var current_value: bool = _blackboard.get_var("event_input_received", false)
 		if not current_value:
 			_blackboard.set_var("event_input_received", true)
 		else:
@@ -55,7 +57,7 @@ func try_activate(context: Dictionary = {}) -> bool:
 
 		# 检查所有特性的 can_activate
 		# 某些特性（如 ToggleFeature）可能允许在已激活时重新激活
-		if not can_activate(context):
+		if not _can_activate_request(context):
 			return true
 		
 		# 有特性允许重新激活，注入上下文数据并调用 on_activate
@@ -63,7 +65,7 @@ func try_activate(context: Dictionary = {}) -> bool:
 			_blackboard.set_var("context", context)
 
 		# 调用所有特性的 on_activate 钩子
-		for feature in _features.values():
+		for feature: GameplayAbilityFeature in _features.values():
 			if not is_instance_valid(feature):
 				continue
 
@@ -72,7 +74,7 @@ func try_activate(context: Dictionary = {}) -> bool:
 		return true
 
 	# 1. 检查能不能放 (Cost, CD, Tags, Features)
-	if not can_activate(context):
+	if not _can_activate_request(context):
 		return false
 
 	# 2. 注入初始黑板数据（在设置 is_active 之前）
@@ -86,7 +88,7 @@ func try_activate(context: Dictionary = {}) -> bool:
 		_blackboard.set_var("is_first_activation", true)
 
 	# 3. 调用所有特性的 on_activate 钩子（在设置 is_active 之前）
-	for feature in _features.values():
+	for feature: GameplayAbilityFeature in _features.values():
 		if not is_instance_valid(feature):
 			continue
 		feature.on_activate(self, context)
@@ -131,23 +133,26 @@ func end_ability(final_status: int = GAS_BTNode.Status.SUCCESS) -> void:
 
 ## 检查是否可以施法
 func can_activate(context: Dictionary = {}) -> bool:
+	if disabled or not is_instance_valid(_bt_instance):
+		return false
+	return _can_activate_request(_make_activation_context(context))
+
+## 查询和执行都先解析输入意图，副本只用于本次请求。
+func _make_activation_context(context: Dictionary) -> Dictionary:
+	var request: Dictionary = context.duplicate(true)
+	for feature: GameplayAbilityFeature in _features.values():
+		if is_instance_valid(feature):
+			request.merge(feature.get_activation_overrides(self), true)
+	return request
+
+func _can_activate_request(request: Dictionary) -> bool:
 	if disabled:
 		return false
-	# 如果技能已激活，先让所有特性有机会设置 skip 标志（如 ToggleFeature 设置 skip_cost/skip_cooldown）
-	# 然后再进行实际的检查
-	if is_active:
-		for feature : GameplayAbilityFeature in _features.values():
-			if not is_instance_valid(feature):
-				continue
-			# 先调用一次，让特性有机会设置 skip 标志（不检查返回值）
-			feature.can_activate(self, context)
-
-	# 调用所有特性的 can_activate（主动技能钩子）
-	# 所有特性的 can_activate 都必须返回 true
-	for feature : GameplayAbilityFeature in _features.values():
+	for feature: GameplayAbilityFeature in _features.values():
 		if not is_instance_valid(feature):
 			continue
-		if not feature.can_activate(self, context):
+		# 隔离旧扩展对 Dictionary 的写入，避免污染其他检查或执行输入。
+		if not feature.can_activate(self, request.duplicate(true)):
 			return false
 	return true
 

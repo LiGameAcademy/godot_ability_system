@@ -168,7 +168,7 @@ func get_all_ability_instances() -> Dictionary[StringName, GameplayAbilityInstan
 ## [param] context: 技能执行上下文
 ## [return] bool 是否可以激活
 func can_activate_ability(ability_id: StringName, context: Dictionary = {}) -> bool:
-	var ability_instance = get_ability_instance(ability_id)
+	var ability_instance: GameplayAbilityInstance = get_ability_instance(ability_id)
 	if not is_instance_valid(ability_instance):
 		push_error("GameplayAbilityComponent: Ability instance is not valid.")
 		return false
@@ -176,12 +176,13 @@ func can_activate_ability(ability_id: StringName, context: Dictionary = {}) -> b
 	if ability_instance.disabled:
 		return false
 
-	context.ability = ability_instance
-	context.ability_component = self
-	context.ability_id = ability_id
-	context.instigator = get_parent()
+	var request: Dictionary = context.duplicate(true)
+	request.ability = ability_instance
+	request.ability_component = self
+	request.ability_id = ability_id
+	request.instigator = get_parent()
 	
-	return ability_instance.can_activate(context)
+	return ability_instance.can_activate(request)
 
 ## 尝试激活技能
 ## 注意：冷却相关逻辑由 AbilityInstance 自己处理，Component 不涉及冷却

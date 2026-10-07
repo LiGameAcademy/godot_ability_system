@@ -48,47 +48,20 @@ Root Sequence
 ## 激活时的图标（当状态存在时显示的图标）
 @export var icon_when_active: Texture = null
 
-## 缓存的默认行为树（所有实例共享，避免重复构建）
-var _cached_default_tree: GAS_BTNode = null
 
 ## 重写基类的工厂方法
 ## 在创建实例时自动注入 Feature 和构建行为树（不修改 Definition，避免资源污染）
 func create_instance(owner: Node) -> GameplayAbilityInstance:
-	# 1. 验证配置
-	_validate_configuration()
-
-	# 2. 获取执行树（优先使用用户配置，否则使用缓存的默认树）
-	var tree_to_use = _get_execution_tree()
-
-	# 3. 临时设置 execution_tree（仅用于创建 Instance，不污染资源）
-	var original_tree = execution_tree
-	execution_tree = tree_to_use
-
-	# 4. 调用父类创建实例（这会复制 features 到 instance）
-	var instance = super(owner)
-
-	# 5. 立即恢复 execution_tree（避免资源污染）
-	execution_tree = original_tree
-
-	# 6. 在 Instance 中动态注入 Feature（不修改 Definition，避免资源污染）
+	var instance: GameplayAbilityInstance = super(owner)
+	if not is_instance_valid(instance):
+		return null
 	_inject_features_to_instance(instance)
-
 	return instance
 
-## 获取执行树（优先使用用户配置，否则使用缓存的默认树）
-## 符合享元模式：所有实例共享同一个行为树
 func _get_execution_tree() -> GAS_BTNode:
-	# 如果用户手动配置了，使用用户的
 	if is_instance_valid(execution_tree):
 		return execution_tree
-
-	# 如果已缓存，使用缓存的（享元模式）
-	if is_instance_valid(_cached_default_tree):
-		return _cached_default_tree
-
-	# 构建并缓存（只构建一次，之后所有实例共享）
-	_cached_default_tree = _build_default_behavior_tree()
-	return _cached_default_tree
+	return _build_default_behavior_tree()
 
 ## 动态构建行为树结构 (构建的是 GAS_BTNode 资源图，而不是 Instance)
 func _build_default_behavior_tree() -> GAS_BTNode:
@@ -311,37 +284,16 @@ func _inject_icon_feature(instance: GameplayAbilityInstance) -> void:
 		instance.add_feature(icon_feature.feature_name, icon_feature)
 
 ## 验证配置的合理性
-func _validate_configuration() -> void:
-	# 验证：前摇和后摇时间应该非负
-	if pre_cast_delay < 0.0:
-		push_error("ToggleAbilityDefinition [%s]: pre_cast_delay 不能为负数 (%.2f)" % [ability_id, pre_cast_delay])
-		pre_cast_delay = 0.0
-
-	if post_cast_delay < 0.0:
-		push_error("ToggleAbilityDefinition [%s]: post_cast_delay 不能为负数 (%.2f)" % [ability_id, post_cast_delay])
-		post_cast_delay = 0.0
-
-	# 验证：冷却时间应该非负
-	if cooldown_duration < 0.0:
-		push_error("ToggleAbilityDefinition [%s]: cooldown_duration 不能为负数 (%.2f)" % [ability_id, cooldown_duration])
-		cooldown_duration = 0.0
-
-	# 验证：动画速度应该为正
-	if animation_speed <= 0.0:
-		push_error("ToggleAbilityDefinition [%s]: animation_speed 必须为正数 (%.2f)" % [ability_id, animation_speed])
-		animation_speed = 1.0
-
-	# 验证：如果配置了 targeting_strategy，应该配置了 toggle_statuses
-	if is_instance_valid(targeting_strategy):
-		if toggle_statuses.is_empty():
-			push_warning(
-				"ToggleAbilityDefinition [%s]: 配置了 targeting_strategy 但没有配置 toggle_statuses。\n" % ability_id +
-				"targeting_strategy 可能不会被使用。"
-			)
-
-	# 验证：应该配置状态
-	if toggle_statuses.is_empty():
-		push_warning(
-			"ToggleAbilityDefinition [%s]: 没有配置 toggle_statuses，技能可能不会产生任何效果。\n" % ability_id +
-			"请确保这是预期的行为。"
-		)
+func get_configuration_errors() -> PackedStringArray:
+	var errors: PackedStringArray = super()
+	_check_number(errors, "pre_cast_delay", pre_cast_delay)
+	_check_number(errors, "post_cast_delay", post_cast_delay)
+	_check_number(errors, "cooldown_duration", cooldown_duration)
+	_check_number(errors, "animation_speed", animation_speed, true)
+	_check_quick_features(errors, costs, cooldown_duration)
+	if target_key.is_empty():
+		errors.append("target_key cannot be empty")
+	for status: GameplayStatusData in toggle_statuses:
+		if not is_instance_valid(status) or toggle_statuses[status] <= 0:
+			errors.append("toggle_statuses requires valid resources and positive stacks")
+	return errors

@@ -8,9 +8,6 @@ class_name ComboAbilityDefinition
 @export var cooldown_duration: float = 0.0                   	## 冷却时间
 @export var input_action : StringName = &""						## 技能快捷键
 
-## 缓存的默认行为树（所有实例共享，避免重复构建）
-## 只在第一次创建实例时构建，之后所有实例共享
-var _cached_combo_tree: GAS_BTNode = null
 
 """
 Root Sequence
@@ -38,43 +35,17 @@ Root Sequence
 ## 重写基类的工厂方法
 ## 在创建实例时自动注入 Feature 和构建行为树（不修改 Definition，避免资源污染）
 func create_instance(owner: Node) -> GameplayAbilityInstance:
-	# 1. 验证配置
-	_validate_configuration()
-
-	# 2. 获取执行树（优先使用用户配置，否则使用缓存的默认树）
-	var tree_to_use = _get_execution_tree()
-
-	# 3. 临时设置 execution_tree（仅用于创建 Instance，不污染资源）
-	var original_tree = execution_tree
-	execution_tree = tree_to_use
-
-	# 4. 调用父类创建实例（这会复制 features 到 instance）
-	var instance = super(owner)
-
-	# 5. 立即恢复 execution_tree（避免资源污染）
-	execution_tree = original_tree
-
-	# 6. 初始化黑板变量
+	var instance: GameplayAbilityInstance = super(owner)
+	if not is_instance_valid(instance):
+		return null
 	_initialize_blackboard(instance)
-
-	# 7. 在 Instance 中动态注入 Feature（不修改 Definition，避免资源污染）
 	_inject_features_to_instance(instance)
-
 	return instance
 
-## 获取执行树（优先使用用户配置，否则使用缓存的默认树）
-## 符合享元模式：所有实例共享同一个行为树
-## [return] GAS_BTNode 执行树
 func _get_execution_tree() -> GAS_BTNode:
-	# 如果用户手动配置了，使用用户的
 	if is_instance_valid(execution_tree):
 		return execution_tree
-	# 如果已缓存，使用缓存的（享元模式）
-	if is_instance_valid(_cached_combo_tree):
-		return _cached_combo_tree
-	# 构建并缓存（只构建一次，之后所有实例共享）
-	_cached_combo_tree = _build_combo_tree()
-	return _cached_combo_tree
+	return _build_combo_tree()
 
 ## 在 Instance 中注入 Feature（不修改 Definition，避免资源污染）
 ## [param] instance: GameplayAbilityInstance 技能实例
@@ -83,7 +54,7 @@ func _inject_features_to_instance(instance: GameplayAbilityInstance) -> void:
 	if not costs.is_empty():
 		var cost_feature = CostFeature.new()
 		if not instance.has_feature(cost_feature.feature_name):
-			cost_feature.costs = costs
+			cost_feature.costs = costs.duplicate()
 			instance.add_feature(cost_feature.feature_name, cost_feature)
 
 	# 注入 CooldownFeature（如果配置了冷却时间且不存在）
@@ -139,27 +110,21 @@ func _initialize_blackboard(instance: GameplayAbilityInstance) -> void:
 		instance.set_blackboard_var("current_icon_id", null)
 
 ## 验证配置的合理性
-func _validate_configuration() -> void:
-	# 验证：连击段不能为空
-	if combo_steps.is_empty():
-		push_error("ComboAbilityDefinition [%s]: combo_steps 不能为空" % ability_id)
-		return
-	
-	# 验证：连击窗口期应该为正数
-	if window_duration <= 0.0:
-		push_error("ComboAbilityDefinition [%s]: window_duration 必须为正数 (%.2f)" % [ability_id, window_duration])
-		window_duration = 0.8  # 使用默认值
-
-	# 验证：冷却时间应该非负
-	if cooldown_duration < 0.0:
-		push_error("ComboAbilityDefinition [%s]: cooldown_duration 不能为负数 (%.2f)" % [ability_id, cooldown_duration])
-		cooldown_duration = 0.0
-
-	# 验证：连击段的有效性
-	for i in range(combo_steps.size()):
-		var step = combo_steps[i]
+func get_configuration_errors() -> PackedStringArray:
+	var errors: PackedStringArray = super()
+	_check_number(errors, "window_duration", window_duration, true)
+	_check_number(errors, "cooldown_duration", cooldown_duration)
+	_check_quick_features(errors, costs, cooldown_duration, input_action)
+	if not is_instance_valid(execution_tree) and combo_steps.is_empty():
+		errors.append("combo_steps cannot be empty without a custom execution_tree")
+	for index: int in range(combo_steps.size()):
+		var step: ActiveAbilityDefinition = combo_steps[index]
 		if not is_instance_valid(step):
-			push_warning("ComboAbilityDefinition [%s]: combo_steps[%d] 无效" % [ability_id, i])
+			errors.append("combo_steps[%d] is empty" % index)
+		else:
+			for error: String in step.get_configuration_errors():
+				errors.append("combo_steps[%d].%s" % [index, error])
+	return errors
 
 func _build_combo_tree() -> GAS_BTNode:
 	# --- 最外层 Sequence ---

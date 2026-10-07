@@ -6,6 +6,7 @@ func run() -> void:
 	actor.add_child(component)
 	var definition: GameplayAbilityDefinition = GameplayAbilityDefinition.new()
 	definition.ability_id = &"test"
+	definition.execution_tree = RegressionBTProbe.new()
 	component.learn_ability(definition)
 	var ability: GameplayAbilityInstance = component.get_ability_instance(&"test")
 	var other: GameplayAbilityInstance = definition.create_instance(actor)
