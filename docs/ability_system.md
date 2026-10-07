@@ -257,20 +257,21 @@ ability_definition.preview_strategy = preview
 不配置指示器场景也可以计算预览结果。以下外部协调函数示范普通 `Node` 的用法：
 
 ```gdscript
-func begin_ground_preview(preview: StrategyCircleArea, caster: Node, visual_position: Vector3, indicator_parent: Node) -> void:
-    preview.begin(caster, null, {
+func begin_ground_preview(component: GameplayAbilityComponent, ability_id: StringName, visual_position: Vector3, indicator_parent: Node) -> GameplayAbilityInstance:
+    return component.request_ability_preview(ability_id, {
         "origin_position": visual_position,
         "indicator_parent": indicator_parent,
     })
 
-func update_ground_preview(preview: StrategyCircleArea, visual_position: Vector3, mouse_world_position: Vector3) -> void:
-    preview.update(0.0, {
+func update_ground_preview(component: GameplayAbilityComponent, delta: float, visual_position: Vector3, mouse_world_position: Vector3) -> void:
+    component.update_targeting(delta, {
         "origin_position": visual_position,
         "mouse_position": mouse_world_position,
     })
 ```
 
-通过技能实例使用时，将相同的字典传入 `start_targeting()` 和 `update_targeting()` 即可。
+组件的 `request_ability_preview()` 新增可选 context，旧的单参数调用保留。
+直接使用技能实例时，将相同的字典传入 `start_targeting()` 和 `update_targeting()` 即可。
 确认仍使用项目的 `confirm_cast` 输入动作。坐标类型错误会取消本轮预览并输出诊断。
 需要 2D 预览时，可以直接实现 `AbilityPreviewStrategy`，使用 `Vector2` 和 2D 指示器。
 

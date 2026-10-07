@@ -28,6 +28,7 @@ func run() -> void:
 	_test_indicator_parent()
 	_test_invalid_context()
 	_test_confirmation()
+	_test_component_entry()
 
 func _test_plain_node_origin() -> void:
 	var actor: Node = Node.new()
@@ -150,3 +151,27 @@ func _test_confirmation() -> void:
 	actor.free()
 	if not had_action:
 		InputMap.erase_action("confirm_cast")
+
+func _test_component_entry() -> void:
+	var actor: Node = Node.new()
+	var scene_tree: SceneTree = Engine.get_main_loop() as SceneTree
+	scene_tree.root.add_child(actor)
+	var component: GameplayAbilityComponent = GameplayAbilityComponent.new()
+	actor.add_child(component)
+	var definition: GameplayAbilityDefinition = GameplayAbilityDefinition.new()
+	definition.ability_id = &"plain_node_preview"
+	definition.execution_tree = RegressionBTProbe.new()
+	definition.preview_strategy = StrategyCircleArea.new()
+	component.learn_ability(definition)
+	var context: Dictionary = {"origin_position": Vector3(5, 0, 0)}
+	var ability: GameplayAbilityInstance = component.request_ability_preview(definition.ability_id, context)
+	expect(is_instance_valid(ability) and component.has_targeting_ability(), "The component must forward an explicit origin for a plain Node owner")
+	if is_instance_valid(ability):
+		component.update_targeting(0.0, {"origin_position": Vector3(8, 0, 0), "mouse_position": Vector3(30, 0, 0)})
+		expect(component.confirm_targeting().get("target_position") == Vector3(18, 0, 0), "The component path must preserve updated world coordinates")
+		expect(component.try_activate_targeting_ability(), "A plain Node preview must activate through the component")
+		expect(not component.has_targeting_ability() and ability.is_active, "Activation must transfer the preview into an execution")
+		component.cancel_ability(definition.ability_id)
+		expect(not ability.is_active, "Cancellation must also work through the public component path")
+	expect(context == {"origin_position": Vector3(5, 0, 0)}, "Starting a component preview must not modify caller context")
+	actor.free()
