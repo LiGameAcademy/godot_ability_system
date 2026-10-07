@@ -4,7 +4,7 @@ class_name CostFeature
 const BUILTIN_VITAL_COST: Script = preload("../costs/vital_cost.gd")
 
 @export_group("Cost Settings")
-## 内置 Vital 费用一起结算；单个旧自定义费用保留原支付入口。
+## 内置 Vital 与采用准备契约的自定义费用一起结算；单个旧费用保留原入口。
 @export var costs: Array[AbilityCostBase] = []
 
 func _init() -> void:
@@ -21,10 +21,10 @@ func try_pay(ability_instance: GameplayAbilityInstance, context: Dictionary) -> 
 		return ability_instance.try_commit(context, true, false, registered_name)
 	return _pay(context, false)
 
-## 仅内置 Vital 和免费请求可准备无通知付款；旧自定义钩子仍走独立入口。
-func prepare_payment(context: Dictionary) -> VitalCostBatch:
+## 准备过程只读，不保留到 Feature 上；旧自定义钩子仍走独立入口。
+func prepare_payment(context: Dictionary) -> CostPaymentBatch:
 	if context.get("skip_cost", false) or costs.is_empty():
-		return VitalCostBatch.new([], null)
+		return CostPaymentBatch.new([], null, null)
 	var instigator_value: Variant = context.get("instigator")
 	var component_value: Variant = context.get("ability_component")
 	if not instigator_value is Node or not component_value is Node:
@@ -33,10 +33,7 @@ func prepare_payment(context: Dictionary) -> VitalCostBatch:
 	var component: Node = component_value as Node
 	if not is_instance_valid(instigator) or not is_instance_valid(component):
 		return null
-	for cost: AbilityCostBase in costs:
-		if not is_instance_valid(cost) or cost.get_script() != BUILTIN_VITAL_COST:
-			return null
-	var batch: VitalCostBatch = VitalCostBatch.new(costs, instigator)
+	var batch: CostPaymentBatch = CostPaymentBatch.new(costs, component, instigator)
 	return batch if batch.valid else null
 
 func _pay(context: Dictionary, check_only: bool) -> bool:
@@ -54,10 +51,10 @@ func _pay(context: Dictionary, check_only: bool) -> bool:
 		if not is_instance_valid(cost):
 			return false
 		# 子类可能覆盖付款钩子，不能把它当作普通 VitalCost 绕过执行。
-		if cost.get_script() != BUILTIN_VITAL_COST:
+		if cost.get_script() != BUILTIN_VITAL_COST and not cost.supports_prepared_payment():
 			if costs.size() != 1:
 				push_warning("CostFeature: multiple or mixed custom costs require a prepared payment contract")
 				return false
 			return cost.can_pay(component, instigator) if check_only else cost.try_pay(component, instigator)
-	var batch: VitalCostBatch = VitalCostBatch.new(costs, instigator)
+	var batch: CostPaymentBatch = CostPaymentBatch.new(costs, component, instigator)
 	return batch.valid if check_only else batch.try_pay()

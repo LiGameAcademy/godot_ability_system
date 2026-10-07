@@ -50,7 +50,7 @@ func _submit(ability: GameplayAbilityInstance, context: Dictionary, pay_cost: bo
 			return false
 	if not ability.is_active or ability.is_disposed():
 		return false
-	var batch: VitalCostBatch = cost.prepare_payment(context) if is_instance_valid(cost) else null
+	var batch: CostPaymentBatch = cost.prepare_payment(context) if is_instance_valid(cost) else null
 	if not ability.is_active or ability.is_disposed():
 		return false
 	if is_instance_valid(cost) and not is_instance_valid(batch):
@@ -68,7 +68,7 @@ func _submit(ability: GameplayAbilityInstance, context: Dictionary, pay_cost: bo
 		_cooldowns.append(cooldown_name)
 		if is_instance_valid(cooldown):
 			cooldown._commit_silently(ability)
-	# 此前没有内置付款通知；现在费用、冷却和提交记录均可被观察。
+	# 准备契约的付款此前不发通知；现在费用、冷却和提交记录均可被观察。
 	if is_instance_valid(cooldown) and cooldown.cooldown_duration > 0.0:
 		ability.ability_data_changed.emit(ability)
 	if is_instance_valid(batch):

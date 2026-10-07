@@ -451,7 +451,7 @@
 
 ### AbilityNodeCommit
 
-统一提交节点。默认一起提交内置 Vital 费用和冷却；`pay_cost`、`start_cooldown` 可关闭一项。
+统一提交节点。默认一起提交内置 Vital、采用准备契约的自定义费用和冷却；`pay_cost`、`start_cooldown` 可关闭一项。
 使用 `cost_feature_name`、`cooldown_feature_name` 指定实际注册名称。
 
 **参考：** [`ability_node_commit.gd`](../scripts/abilities/ability_nodes/ability_node_commit.gd)
