@@ -1,7 +1,7 @@
 [gd_scene load_steps=3 format=3 uid="uid://bxlievegev5m1"]
 
-[ext_resource type="Script" uid="uid://c6c3pl05sp6j3" path="res://addons/gameplay_abiltiy_system/ui/ability_bar.gd" id="1_tyisw"]
-[ext_resource type="PackedScene" uid="uid://d17o2epdcgt4" path="res://addons/gameplay_abiltiy_system/ui/ability_button.tscn" id="2_l32jy"]
+[ext_resource type="Script" path="ability_bar.gd" id="1_tyisw"]
+[ext_resource type="PackedScene" path="ability_button.tscn" id="2_l32jy"]
 
 [node name="AbilityBar" type="HBoxContainer"]
 anchors_preset = 8

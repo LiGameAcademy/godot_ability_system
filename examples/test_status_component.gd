@@ -1,19 +1,25 @@
-extends Node
+extends Node3D
 
-const BURN_STATUS = preload("uid://yjensy7cr6dj")
-
+const BURN_STATUS: GameplayStatusData = preload("burn_status.tres")
 @onready var status_comp: GameplayStatusComponent = %GameplayStatusComponent
+signal example_completed()
 
 func _ready() -> void:
-	await get_tree().process_frame
-	# 应用并叠加燃烧
-	var burn_status = BURN_STATUS.duplicate(true)
-	status_comp.apply_status(burn_status, self, 1, {})
-	status_comp.apply_status(burn_status, self, 1, {})
-	var instance = status_comp.get_status(&"burn")
-	print("燃烧层数:", instance.stacks)  # 期望 2
-
-	# 按标签批量移除
+	var registered_here: Array[StringName] = []
+	for tag_id: StringName in BURN_STATUS.tags:
+		if not TagManager.is_tag_registered(tag_id):
+			var tag: GameplayTag = GameplayTag.new()
+			tag.id = tag_id
+			TagManager.register_tag(tag)
+			registered_here.append(tag_id)
+	var burn: GameplayStatusData = BURN_STATUS
+	status_comp.apply_status(burn, self, 1, {})
+	status_comp.apply_status(burn, self, 1, {})
+	var instance: GameplayStatusInstance = status_comp.get_status(&"burn")
+	assert(is_instance_valid(instance) and instance.stacks == 2)
 	status_comp.remove_statuses_by_tags([&"status.burn"])
 	assert(not status_comp.has_status(&"burn"))
-	print("✅ 状态组件测试通过")
+	for tag_id: StringName in registered_here:
+		TagManager.unregister_tag(tag_id)
+	print("状态示例通过：叠层、按标签移除")
+	example_completed.emit()

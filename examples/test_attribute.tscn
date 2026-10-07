@@ -1,30 +1,10 @@
-[gd_scene load_steps=15 format=3 uid="uid://qvq6hbk5108d"]
-
-[ext_resource type="Script" uid="uid://cyyqof6fbsfyc" path="res://addons/gameplay_abiltiy_system/scripts/components/gameplay_attribute_component.gd" id="1_diqd3"]
-[ext_resource type="Script" uid="uid://cgixskqn508xq" path="res://addons/gameplay_abiltiy_system/examples/test_attribute.gd" id="1_phd4c"]
-[ext_resource type="Script" uid="uid://bkkqftstlq2s6" path="res://addons/gameplay_abiltiy_system/scripts/attributes/gameplay_attribute_set.gd" id="2_ob1f7"]
-[ext_resource type="Resource" uid="uid://ccp0144chfduo" path="res://data/attribute_sets/hero_primary_attributes.tres" id="3_5upkc"]
-[ext_resource type="Resource" uid="uid://c6m5kfhl1aid0" path="res://data/attribute_sets/hero_secondary_attributes.tres" id="4_rb4ii"]
-[ext_resource type="Script" uid="uid://bm4h231fb21pv" path="res://addons/gameplay_abiltiy_system/scripts/abilities/gameplay_ability_definition.gd" id="5_sn7wg"]
-[ext_resource type="Resource" uid="uid://dp3c4xicn4jo0" path="res://data/abilities/damage_reduction_shield_passive.tres" id="6_c5c10"]
-[ext_resource type="Resource" uid="uid://h0khiha2ln3l" path="res://data/abilities/shield.tres" id="7_mnnxe"]
-[ext_resource type="Resource" uid="uid://6gemngjv4ru5" path="res://data/abilities/sacrifice.tres" id="8_l8a0f"]
-[ext_resource type="Script" uid="uid://vexvjx4r3f5b" path="res://scripts/data/player_data.gd" id="9_shqrx"]
-[ext_resource type="Script" uid="uid://de4yqlfssv0xe" path="res://addons/gameplay_abiltiy_system/scripts/attributes/vitals/gameplay_vital.gd" id="10_v3beb"]
-[ext_resource type="Resource" uid="uid://dttqbxpvo1e7d" path="res://data/vitals/health_vital.tres" id="11_0wvf8"]
-[ext_resource type="Resource" uid="uid://ks8eqy4dry5b" path="res://data/vitals/mana_vital.tres" id="12_j55js"]
-
-[sub_resource type="Resource" id="Resource_dvgxg"]
-script = ExtResource("9_shqrx")
-attribute_sets = Array[ExtResource("2_ob1f7")]([ExtResource("3_5upkc"), ExtResource("4_rb4ii")])
-vitals = Array[ExtResource("10_v3beb")]([ExtResource("11_0wvf8"), ExtResource("12_j55js")])
-initial_abilities = Array[ExtResource("5_sn7wg")]([ExtResource("6_c5c10"), ExtResource("7_mnnxe"), ExtResource("8_l8a0f")])
-metadata/_custom_type_script = "uid://vexvjx4r3f5b"
-
+[gd_scene load_steps=5 format=3 uid="uid://qvq6hbk5108d"]
+[ext_resource type="Script" path="test_attribute.gd" id="1"]
+[ext_resource type="Script" path="../scripts/components/gameplay_attribute_component.gd" id="2"]
+[ext_resource type="Script" path="../scripts/attributes/gameplay_attribute_set.gd" id="3"]
+[ext_resource type="Resource" path="example_attributes.tres" id="4"]
 [node name="TestAttribute" type="Node3D"]
-script = ExtResource("1_phd4c")
-player_data = SubResource("Resource_dvgxg")
-
+script = ExtResource("1")
+attribute_sets = Array[ExtResource("3")]([ExtResource("4")])
 [node name="GameplayAttributeComponent" type="Node" parent="."]
-script = ExtResource("1_diqd3")
-metadata/_custom_type_script = "uid://cyyqof6fbsfyc"
+script = ExtResource("2")

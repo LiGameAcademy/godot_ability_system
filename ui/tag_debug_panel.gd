@@ -11,7 +11,7 @@ extends MarginContainer
 @onready var force_remove_tag_button: Button = %ForceRemoveTagButton
 
 @export var toggle_action: String = "toggle_tag_debug"
-@export var TAG_DISPLAY_ITEM_SCENE : PackedScene = preload("res://addons/gameplay_abiltiy_system/ui/tag_display_item.tscn")
+@export var TAG_DISPLAY_ITEM_SCENE : PackedScene = preload("tag_display_item.tscn")
 
 var _entities: Dictionary = {}
 var _selected_entity: Node = null

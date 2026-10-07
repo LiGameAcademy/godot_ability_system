@@ -1,6 +1,6 @@
 [gd_resource type="ShaderMaterial" load_steps=2 format=3 uid="uid://cnd6cut0opag7"]
 
-[ext_resource type="Shader" uid="uid://dpfbfkrf7ecs1" path="res://addons/gameplay_abiltiy_system/assets/shaders/circular_progress.gdshader" id="1_kiuib"]
+[ext_resource type="Shader" path="../shaders/circular_progress.gdshader" id="1_kiuib"]
 
 [resource]
 resource_local_to_scene = true

@@ -11,7 +11,7 @@ class_name EffectModifierFeature
 ## 4. 修改后的 context 会被注入到黑板，供行为树节点读取
 
 ## 效果修改器列表（由 外部 注入）
-var effect_modifiers: Array[TalentEffectModifier] = []
+var effect_modifiers: Array[AbilityEffectModifier] = []
 
 ## 技能激活时调用
 func on_activate(ability: GameplayAbilityInstance, context: Dictionary) -> void:
@@ -19,10 +19,10 @@ func on_activate(ability: GameplayAbilityInstance, context: Dictionary) -> void:
 		return
 
 	# 获取技能ID
-	var ability_id = ability.get_definition().ability_id
+	var ability_id: StringName = ability.get_definition().ability_id
 
 	# 遍历所有效果修改器
-	for modifier in effect_modifiers:
+	for modifier: AbilityEffectModifier in effect_modifiers:
 		if not is_instance_valid(modifier):
 			continue
 
@@ -32,9 +32,3 @@ func on_activate(ability: GameplayAbilityInstance, context: Dictionary) -> void:
 
 		# 应用修改到 context
 		modifier.apply_to_context(context)
-
-		print("TalentEffectModifierFeature: Applied modifier for ability '%s' (damage_multiplier: %.2f, heal_multiplier: %.2f)" % [
-			ability_id,
-			context.get("damage_multiplier", 1.0),
-			context.get("heal_multiplier", 1.0)
-		])

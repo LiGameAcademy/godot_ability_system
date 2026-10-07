@@ -1,7 +1,7 @@
 [gd_scene load_steps=3 format=3 uid="uid://cefhe6w0nwjsu"]
 
-[ext_resource type="Theme" uid="uid://bxmd4wteaxnnk" path="res://addons/gameplay_abiltiy_system/assets/theme/theme_default.tres" id="1_73cy5"]
-[ext_resource type="Script" uid="uid://bwd0sinsqevgs" path="res://addons/gameplay_abiltiy_system/ui/bt_debug_panel.gd" id="1_atopn"]
+[ext_resource type="Theme" path="../assets/theme/theme_default.tres" id="1_73cy5"]
+[ext_resource type="Script" path="bt_debug_panel.gd" id="1_atopn"]
 
 [node name="BtDebugPanel" type="Window"]
 oversampling_override = 1.0

@@ -1,104 +1,58 @@
 extends HitDetectorBase
 class_name MeleeBoxHitDetector
 
-## 攻击盒的大小 (半宽/半高/半深)
-@export var box_extents: Vector3 = Vector3(1, 1, 1)
-## 攻击盒相对于角色的偏移 (比如前方 1米)
+## 攻击盒的半宽、半高、半深。
+@export var box_extents: Vector3 = Vector3.ONE
 @export var offset: Vector3 = Vector3(0, 1, 1)
-## 碰撞层级掩码
 @export_flags_3d_physics var collision_mask: int = 1
-
-## 是否启用调试绘制
 @export var debug_draw_enabled: bool = false
-## 调试框体显示时间（帧数，0 表示只显示 1 帧）
 @export var debug_linger_frames: int = 30
-## 攻击盒绘制颜色
 @export var debug_box_color: Color = Color.YELLOW
 
+## 表现层按需订阅，可连接到项目使用的调试绘制插件。
+signal debug_box_requested(bounds: AABB, color: Color, linger_frames: int)
+
 func _get_targets(caster: Node3D, context: Dictionary = {}) -> Array[Node]:
-	if not is_instance_valid(caster): return [] as Array[Node]
-	# 1. 构建查询参数
-	var space_state = caster.get_world_3d().direct_space_state
-	var query = PhysicsShapeQueryParameters3D.new()
-
-	# 2. 创建形状
-	var shape = BoxShape3D.new()
-	shape.size = box_extents * 2 # BoxShape使用全长
+	var targets: Array[Node] = []
+	if not is_instance_valid(caster) or not caster.is_inside_tree() or not _is_valid():
+		return targets
+	var direction: Variant = context.get("facing_direction", -caster.global_basis.z)
+	if not direction is Vector3 or not direction.is_finite() or direction.is_zero_approx():
+		push_warning("MeleeBoxHitDetector: facing_direction must be a nonzero finite Vector3")
+		return targets
+	var facing: Vector3 = direction.normalized()
+	var up: Vector3 = Vector3.RIGHT if absf(facing.dot(Vector3.UP)) > 0.99 else Vector3.UP
+	var right: Vector3 = facing.cross(up).normalized()
+	up = right.cross(facing).normalized()
+	var basis: Basis = Basis(right, up, -facing)
+	# 保留原有偏移含义：x 向右、y 向上、z 朝面向方向；查询使用正交旋转。
+	var position: Vector3 = caster.global_position + right * offset.x + up * offset.y + facing * offset.z
+	var transform: Transform3D = Transform3D(basis, position)
+	var shape: BoxShape3D = BoxShape3D.new()
+	shape.size = box_extents * 2.0
+	var query: PhysicsShapeQueryParameters3D = PhysicsShapeQueryParameters3D.new()
 	query.shape = shape
-
-	# 3. 获取角色面朝方向
-	var facing_dir: Vector3 = Vector3.ZERO
-	if context.has("facing_direction"):
-		facing_dir = (context["facing_direction"] as Vector3).normalized()
-	else:
-		push_warning("MeleeBoxHitDetector: facing_dir is zero!")
-
-	# 4. 构建旋转矩阵
-	var up = Vector3.UP
-	var right = facing_dir.cross(up).normalized()
-	if right.length_squared() < 0.01:
-		right = Vector3.RIGHT
-	up = right.cross(facing_dir).normalized()
-	var rotation_basis = Basis(right, up, facing_dir)
-
-	# 5. 计算攻击盒的位置和旋转
-	var rotated_offset = rotation_basis * offset
-	var box_position = caster.global_position + rotated_offset
-	var box_transform = Transform3D(rotation_basis, box_position)
-	query.transform = box_transform
-
-	# 6. 配置查询参数
+	query.transform = transform
 	query.collision_mask = collision_mask
 	query.collide_with_areas = true
 	query.collide_with_bodies = true
-	query.exclude = [caster] # 排除施法者自己
-
-	# 7. 执行查询
-	var results = space_state.intersect_shape(query)
-	var targets: Array[Node] = []
-	for data in results:
-		var collider = data.get("collider")
-		if not is_instance_valid(collider):
+	# Godot 4 使用 RID；普通 Node3D 没有物理 RID，另在结果中排除其子碰撞对象。
+	if caster is CollisionObject3D:
+		query.exclude = [caster.get_rid()]
+	var space: PhysicsDirectSpaceState3D = caster.get_world_3d().direct_space_state
+	var hits: Array[Dictionary] = space.intersect_shape(query)
+	for hit: Dictionary in hits:
+		var collider: Node = hit.get("collider") as Node
+		if not is_instance_valid(collider) or collider == caster or caster.is_ancestor_of(collider):
 			continue
-
-		# 转换为实体根节点
-		var entity = collider.get_parent()
-		if is_instance_valid(entity):
+		# 沿用检测器的实体约定：碰撞节点的父级是技能目标。
+		var entity: Node = collider.get_parent()
+		if is_instance_valid(entity) and entity != caster and not targets.has(entity):
 			targets.append(entity)
-
-	# 8. 调试绘制（如果启用）
 	if debug_draw_enabled:
-		_draw_debug_info(caster, box_transform, facing_dir, targets)
-
+		var bounds: AABB = AABB(-box_extents, box_extents * 2.0)
+		debug_box_requested.emit(transform * bounds, debug_box_color, debug_linger_frames)
 	return targets
 
-## 绘制调试信息
-func _draw_debug_info(caster: Node3D, box_transform: Transform3D, facing_dir: Vector3, targets: Array[Node]) -> void:
-	if not is_instance_valid(caster):
-		return
-
-	# 1. 绘制攻击盒（使用完整的 transform）
-	# 计算局部空间的 8 个顶点
-	var local_corners = [
-		Vector3(-box_extents.x, -box_extents.y, -box_extents.z),
-		Vector3( box_extents.x, -box_extents.y, -box_extents.z),
-		Vector3(-box_extents.x,  box_extents.y, -box_extents.z),
-		Vector3( box_extents.x,  box_extents.y, -box_extents.z),
-		Vector3(-box_extents.x, -box_extents.y,  box_extents.z),
-		Vector3( box_extents.x, -box_extents.y,  box_extents.z),
-		Vector3(-box_extents.x,  box_extents.y,  box_extents.z),
-		Vector3( box_extents.x,  box_extents.y,  box_extents.z)
-	]
-	# 转换到世界空间
-	var world_corners: Array[Vector3] = []
-	for corner in local_corners:
-		world_corners.append(box_transform * corner)
-	# 计算世界空间的 AABB
-	var min_pos = world_corners[0]
-	var max_pos = world_corners[0]
-	for corner in world_corners:
-		min_pos = min_pos.min(corner)
-		max_pos = max_pos.max(corner)
-
-	var world_aabb = AABB(min_pos, max_pos - min_pos)
-	DebugDraw.draw_box_aabb(world_aabb, debug_box_color, debug_linger_frames)
+func _is_valid() -> bool:
+	return box_extents.is_finite() and offset.is_finite() and box_extents.x > 0.0 and box_extents.y > 0.0 and box_extents.z > 0.0

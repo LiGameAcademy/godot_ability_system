@@ -1,18 +1,17 @@
-[gd_scene load_steps=22 format=3 uid="uid://42o2xga7mo6k"]
+[gd_scene load_steps=20 format=3 uid="uid://42o2xga7mo6k"]
 
-[ext_resource type="Script" uid="uid://cp8m6lg2gvgxn" path="res://addons/gameplay_abiltiy_system/examples/test_effect_basic.gd" id="1_l8jwd"]
-[ext_resource type="Script" uid="uid://bhopvoj74pcwj" path="res://addons/gameplay_abiltiy_system/scripts/components/gameplay_vital_attribute_component.gd" id="2_0hrsw"]
-[ext_resource type="Script" uid="uid://bkkqftstlq2s6" path="res://addons/gameplay_abiltiy_system/scripts/attributes/gameplay_attribute_set.gd" id="2_6afjw"]
-[ext_resource type="Script" uid="uid://dj0iwc88r8noi" path="res://addons/gameplay_abiltiy_system/scripts/attributes/gameplay_attribute.gd" id="3_7dyc1"]
-[ext_resource type="Script" uid="uid://vexvjx4r3f5b" path="res://scripts/data/player_data.gd" id="3_h7w2l"]
-[ext_resource type="Script" uid="uid://dd5tuhga1jg51" path="res://addons/gameplay_abiltiy_system/scripts/utilties/scalable_value.gd" id="4_6l7wa"]
-[ext_resource type="Script" uid="uid://de4yqlfssv0xe" path="res://addons/gameplay_abiltiy_system/scripts/attributes/vitals/gameplay_vital.gd" id="4_qgmjc"]
-[ext_resource type="Script" uid="uid://bm4h231fb21pv" path="res://addons/gameplay_abiltiy_system/scripts/abilities/gameplay_ability_definition.gd" id="5_oqaby"]
-[ext_resource type="Script" uid="uid://b6k2lmhsmbn2c" path="res://addons/gameplay_abiltiy_system/scripts/attributes/vitals/health_vital.gd" id="6_14qmg"]
-[ext_resource type="Script" uid="uid://bh8lykstg57tm" path="res://addons/gameplay_abiltiy_system/scripts/filters/gameplay_filter.gd" id="7_dqebc"]
-[ext_resource type="Script" uid="uid://cra1yv70jj5sn" path="res://addons/gameplay_abiltiy_system/scripts/effects/ge_apply_damage.gd" id="8_mydy4"]
-[ext_resource type="Script" uid="uid://cb3e3wuphyka3" path="res://addons/gameplay_abiltiy_system/scripts/effects/gameplay_effect.gd" id="9_6l7wa"]
-[ext_resource type="Script" uid="uid://dw4mtt5ah1yp5" path="res://addons/gameplay_abiltiy_system/scripts/effects/ge_modify_vital.gd" id="10_oqaby"]
+[ext_resource type="Script" path="test_effect_basic.gd" id="1_l8jwd"]
+[ext_resource type="Script" path="../scripts/components/gameplay_vital_attribute_component.gd" id="2_0hrsw"]
+[ext_resource type="Script" path="../scripts/attributes/gameplay_attribute_set.gd" id="2_6afjw"]
+[ext_resource type="Script" path="../scripts/attributes/gameplay_attribute.gd" id="3_7dyc1"]
+[ext_resource type="Script" path="../scripts/utilties/scalable_value.gd" id="4_6l7wa"]
+[ext_resource type="Script" path="../scripts/attributes/vitals/gameplay_vital.gd" id="4_qgmjc"]
+[ext_resource type="Script" path="../scripts/abilities/gameplay_ability_definition.gd" id="5_oqaby"]
+[ext_resource type="Script" path="../scripts/attributes/vitals/health_vital.gd" id="6_14qmg"]
+[ext_resource type="Script" path="../scripts/filters/gameplay_filter.gd" id="7_dqebc"]
+[ext_resource type="Script" path="../scripts/effects/ge_apply_damage.gd" id="8_mydy4"]
+[ext_resource type="Script" path="../scripts/effects/gameplay_effect.gd" id="9_6l7wa"]
+[ext_resource type="Script" path="../scripts/effects/ge_modify_vital.gd" id="10_oqaby"]
 
 [sub_resource type="Resource" id="Resource_7dyc1"]
 script = ExtResource("3_7dyc1")
@@ -54,12 +53,6 @@ display_name = "生命值"
 max_value_attribute = &"max_health"
 metadata/_custom_type_script = "uid://b6k2lmhsmbn2c"
 
-[sub_resource type="Resource" id="Resource_65soj"]
-script = ExtResource("3_h7w2l")
-attribute_sets = Array[ExtResource("2_6afjw")]([SubResource("Resource_6l7wa")])
-vitals = Array[ExtResource("4_qgmjc")]([SubResource("Resource_oqaby")])
-metadata/_custom_type_script = "uid://vexvjx4r3f5b"
-
 [sub_resource type="Resource" id="Resource_66hwa"]
 script = ExtResource("8_mydy4")
 damage_multiplier = 2.0
@@ -73,7 +66,8 @@ metadata/_custom_type_script = "uid://dw4mtt5ah1yp5"
 
 [node name="TestEffectBasic" type="Node3D"]
 script = ExtResource("1_l8jwd")
-player_data = SubResource("Resource_65soj")
+attribute_sets = Array[ExtResource("2_6afjw")]([SubResource("Resource_6l7wa")])
+vitals = Array[ExtResource("4_qgmjc")]([SubResource("Resource_oqaby")])
 damage_effect_res = SubResource("Resource_66hwa")
 heal_effect_res = SubResource("Resource_keusy")
 

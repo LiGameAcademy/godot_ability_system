@@ -14,11 +14,12 @@ func _run() -> void:
 	var failed: bool = false
 	for case_name: String in cases:
 		var script: Script = load("res://tests/cases/%s.gd" % case_name)
-		if not is_instance_valid(script):
+		if not is_instance_valid(script) or not script.can_instantiate():
+			printerr("Cannot instantiate regression case: ", case_name)
 			failed = true
 			continue
 		var test: RegressionCase = script.new()
-		test.run()
+		await test.run()
 		if test.failures.is_empty():
 			print("PASS: ", case_name)
 		else:

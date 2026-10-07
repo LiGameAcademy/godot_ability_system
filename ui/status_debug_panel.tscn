@@ -1,8 +1,8 @@
 [gd_scene load_steps=4 format=3 uid="uid://ckolr7skejo8m"]
 
-[ext_resource type="Script" uid="uid://uctdydpefxyc" path="res://addons/gameplay_abiltiy_system/ui/status_debug_panel.gd" id="1_thbst"]
-[ext_resource type="PackedScene" uid="uid://puirrf70bmsw" path="res://addons/gameplay_abiltiy_system/ui/status_icon.tscn" id="2_3nqm8"]
-[ext_resource type="Theme" uid="uid://bxmd4wteaxnnk" path="res://addons/gameplay_abiltiy_system/assets/theme/theme_default.tres" id="3_3nqm8"]
+[ext_resource type="Script" path="status_debug_panel.gd" id="1_thbst"]
+[ext_resource type="PackedScene" path="status_icon.tscn" id="2_3nqm8"]
+[ext_resource type="Theme" path="../assets/theme/theme_default.tres" id="3_3nqm8"]
 
 [node name="StatusDebugPanel" type="MarginContainer"]
 offset_right = 379.0

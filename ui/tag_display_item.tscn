@@ -1,7 +1,7 @@
 [gd_scene load_steps=3 format=3 uid="uid://hbdpoivats7c"]
 
-[ext_resource type="Script" uid="uid://siagffegc1p2" path="res://addons/gameplay_abiltiy_system/ui/tag_display_item.gd" id="1_hr30l"]
-[ext_resource type="Theme" uid="uid://bxmd4wteaxnnk" path="res://addons/gameplay_abiltiy_system/assets/theme/theme_default.tres" id="2_78fjk"]
+[ext_resource type="Script" path="tag_display_item.gd" id="1_hr30l"]
+[ext_resource type="Theme" path="../assets/theme/theme_default.tres" id="2_78fjk"]
 
 [node name="TagDisplayItem" type="MarginContainer"]
 script = ExtResource("1_hr30l")

@@ -1,7 +1,7 @@
 [gd_scene load_steps=3 format=3 uid="uid://b4qtmgalki1a8"]
 
-[ext_resource type="Script" uid="uid://7rivag04r71d" path="res://addons/gameplay_abiltiy_system/ui/tag_debug_panel.gd" id="1_sx7sf"]
-[ext_resource type="Theme" uid="uid://bxmd4wteaxnnk" path="res://addons/gameplay_abiltiy_system/assets/theme/theme_default.tres" id="2_sx7sf"]
+[ext_resource type="Script" path="tag_debug_panel.gd" id="1_sx7sf"]
+[ext_resource type="Theme" path="../assets/theme/theme_default.tres" id="2_sx7sf"]
 
 [node name="TagDebugPanel" type="MarginContainer"]
 anchors_preset = 8

@@ -1,19 +1,15 @@
 [gd_resource type="Resource" script_class="GameplayStatusData" load_steps=4 format=3 uid="uid://yjensy7cr6dj"]
-
-[ext_resource type="Script" uid="uid://cb3e3wuphyka3" path="res://addons/gameplay_abiltiy_system/scripts/effects/gameplay_effect.gd" id="1_t0mcg"]
-[ext_resource type="Texture2D" uid="uid://ckarr4gl6dpbp" path="res://assets/textures/burn.tres" id="5_uib8g"]
-[ext_resource type="Script" uid="uid://8u46anns2vhm" path="res://addons/gameplay_abiltiy_system/scripts/status/gameplay_status_data.gd" id="6_o4cb5"]
-
+[ext_resource type="Script" path="../scripts/status/gameplay_status_data.gd" id="1"]
+[ext_resource type="Script" path="../scripts/status/stacking/stacking_refresh_and_stack.gd" id="2"]
+[sub_resource type="Resource" id="stacking"]
+script = ExtResource("2")
 [resource]
-script = ExtResource("6_o4cb5")
+script = ExtResource("1")
 status_id = &"burn"
 status_display_name = "燃烧"
-status_description = "持续受到火焰伤害"
+status_description = "演示叠层与按标签移除；未配置伤害效果"
 duration = 10.0
-icon = ExtResource("5_uib8g")
 tags = Array[StringName]([&"status.debuff", &"element.fire", &"status.burn"])
-period = 1.0
-stacking_policy = 0
+stacking_policy = SubResource("stacking")
 max_stacks = 5
 priority = 1
-metadata/_custom_type_script = "uid://8u46anns2vhm"
