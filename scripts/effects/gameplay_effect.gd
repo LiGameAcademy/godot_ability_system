@@ -7,7 +7,7 @@ class_name GameplayEffect
 
 # --- 过滤与组合 ---
 @export var filters: Array[GameplayFilterData] = []  ## 过滤器，如果为空，则不过滤
-@export var sub_effects: Array[GameplayEffect] = []  ## 子效果，支持效果组合
+@export var sub_effects: Array[GameplayEffect] = _empty_sub_effects()  ## 子效果，支持效果组合
 
 # --- 标签要求（标签系统集成）---
 @export_group("Tag Requirements")
@@ -124,3 +124,7 @@ func _remove_sub_effects(target: Node, instigator: Node, context: Dictionary) ->
 func _remove(_target: Node, _instigator: Node, _context: Dictionary) -> void:
 	# 默认空实现，大多数效果不需要移除逻辑
 	pass
+
+## Godot 4.7 下，自类型数组常量默认值会保留脚本自身；改为按实例创建。
+static func _empty_sub_effects() -> Array[GameplayEffect]:
+	return []
